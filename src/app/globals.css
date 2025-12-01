@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "react-datepicker/dist/react-datepicker.css";
+
+@layer base {
+  body {
+    background: #FFFFFF;
+    color: #333A41;
+  }
+
+  h1, h2, h3 {
+    letter-spacing: -0.02em;
+  }
+
+  p, span, li, label, input, button {
+    letter-spacing: 0;
+  }
+}
+
