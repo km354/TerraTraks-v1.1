@@ -10,55 +10,55 @@ export default function Footer() {
           <div className="flex flex-wrap gap-4">
             <Link
               href="/"
-              className="text-sm text-text-slate hover:text-brand-forest"
+              className="text-sm text-text-primary hover:text-brand-primary"
             >
               Home
             </Link>
             <Link
               href="/trips"
-              className="text-sm text-text-slate hover:text-brand-forest"
+              className="text-sm text-text-primary hover:text-brand-primary"
             >
               Your Trips
             </Link>
             <Link
               href="/pricing"
-              className="text-sm text-text-slate hover:text-brand-forest"
+              className="text-sm text-text-primary hover:text-brand-primary"
             >
               Pricing
             </Link>
           </div>
 
           {/* Right text */}
-          <p className="text-sm text-text-slate">
+          <p className="text-sm text-text-primary">
             Proud supporter of the National Park Service and National Park Foundation.
           </p>
         </div>
 
         {/* Bottom row */}
-        <div className="text-xs md:text-sm text-gray-500 flex flex-wrap gap-4 justify-between">
+        <div className="text-xs md:text-sm text-text-secondary flex flex-wrap gap-4 justify-between">
           <span>© TerraTraks Inc. All rights reserved.</span>
           <div className="flex flex-wrap gap-4">
             <Link
               href="/legal/terms"
-              className="hover:text-text-slate"
+              className="hover:text-text-primary"
             >
               Terms of Service
             </Link>
             <Link
               href="/legal/privacy"
-              className="hover:text-text-slate"
+              className="hover:text-text-primary"
             >
               Privacy Policy
             </Link>
             <Link
               href="/legal/risk"
-              className="hover:text-text-slate"
+              className="hover:text-text-primary"
             >
               Risk & Medical Disclaimer
             </Link>
             <Link
               href="/legal/accessibility"
-              className="hover:text-text-slate"
+              className="hover:text-text-primary"
             >
               Accessibility
             </Link>

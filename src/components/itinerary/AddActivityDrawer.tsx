@@ -247,12 +247,12 @@ export default function AddActivityDrawer({
     <div className="fixed top-0 right-0 h-screen w-[480px] bg-white border-l border-surface-divider shadow-card z-50 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-surface-divider flex-shrink-0">
-        <h2 className="text-lg md:text-xl font-semibold text-text-slate">
+        <h2 className="text-lg md:text-xl font-semibold text-text-primary">
           Add activities
         </h2>
         <button
           onClick={onClose}
-          className="text-gray-600 hover:text-gray-900 text-xl font-semibold"
+          className="text-text-secondary hover:text-gray-900 text-xl font-semibold"
           aria-label="Close drawer"
         >
           ×
@@ -264,7 +264,7 @@ export default function AddActivityDrawer({
         <div className="p-4 space-y-6">
           {/* Day Indicator */}
           {selectedDay !== null && (
-            <div className="text-sm md:text-base text-text-slate font-medium">
+            <div className="text-sm md:text-base text-text-primary font-medium">
               Adding activities to Day {selectedDay}
             </div>
           )}
@@ -273,7 +273,7 @@ export default function AddActivityDrawer({
           <div className="space-y-4">
             {/* Difficulty Filter */}
             <div>
-              <label className="block text-sm md:text-base font-medium text-text-slate mb-2">
+              <label className="block text-sm md:text-base font-medium text-text-primary mb-2">
                 Difficulty
               </label>
               <div className="flex flex-wrap gap-2">
@@ -284,8 +284,8 @@ export default function AddActivityDrawer({
                     onClick={() => handleDifficultyToggle(level)}
                     className={`px-3 py-1.5 rounded-full text-sm md:text-base font-medium transition ${
                       difficulty[level]
-                        ? "bg-brand-forest text-white"
-                        : "bg-surface-background text-text-slate hover:bg-surface-divider"
+                        ? "bg-brand-primary text-white"
+                        : "bg-surface-background text-text-primary hover:bg-surface-divider"
                     }`}
                   >
                     {level.charAt(0).toUpperCase() + level.slice(1)}
@@ -296,7 +296,7 @@ export default function AddActivityDrawer({
 
             {/* Type Filter */}
             <div>
-              <label className="block text-sm md:text-base font-medium text-text-slate mb-2">
+              <label className="block text-sm md:text-base font-medium text-text-primary mb-2">
                 Type
               </label>
               <div className="flex flex-wrap gap-2">
@@ -309,8 +309,8 @@ export default function AddActivityDrawer({
                     onClick={() => handleTypeToggle(activityType)}
                     className={`px-3 py-1.5 rounded-full text-sm md:text-base font-medium transition ${
                       type[activityType]
-                        ? "bg-brand-forest text-white"
-                        : "bg-surface-background text-text-slate hover:bg-surface-divider"
+                        ? "bg-brand-primary text-white"
+                        : "bg-surface-background text-text-primary hover:bg-surface-divider"
                     }`}
                   >
                     {TYPE_LABELS[activityType]}
@@ -326,9 +326,9 @@ export default function AddActivityDrawer({
                   type="checkbox"
                   checked={requiresPermit}
                   onChange={(e) => setRequiresPermit(e.target.checked)}
-                  className="w-4 h-4 rounded border-surface-divider text-brand-forest focus:ring-brand-forest"
+                  className="w-4 h-4 rounded border-surface-divider text-brand-primary focus:ring-brand-primary"
                 />
-                <span className="text-sm md:text-base text-text-slate">
+                <span className="text-sm md:text-base text-text-primary">
                   Requires permit
                 </span>
               </label>
@@ -341,9 +341,9 @@ export default function AddActivityDrawer({
                   type="checkbox"
                   checked={requiresShuttle}
                   onChange={(e) => setRequiresShuttle(e.target.checked)}
-                  className="w-4 h-4 rounded border-surface-divider text-brand-forest focus:ring-brand-forest"
+                  className="w-4 h-4 rounded border-surface-divider text-brand-primary focus:ring-brand-primary"
                 />
-                <span className="text-sm md:text-base text-text-slate">
+                <span className="text-sm md:text-base text-text-primary">
                   Requires shuttle
                 </span>
               </label>
@@ -357,13 +357,13 @@ export default function AddActivityDrawer({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Browse suggestions or search for specific hikes, viewpoints, and POIs"
-              className="w-full rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-brand-forest/60"
+              className="w-full rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-black/20"
             />
           </div>
 
           {/* Results List */}
           <div className="space-y-2">
-            <h3 className="text-sm md:text-base font-medium text-text-slate">
+            <h3 className="text-sm md:text-base font-medium text-text-primary">
               Results ({filteredActivities.length})
             </h3>
             <div className="space-y-2">
@@ -373,20 +373,20 @@ export default function AddActivityDrawer({
                   className="flex items-start justify-between gap-3 p-3 rounded-lg border border-surface-divider bg-white hover:bg-surface-background transition"
                 >
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm md:text-base font-semibold text-text-slate mb-1">
+                    <h4 className="text-sm md:text-base font-semibold text-text-primary mb-1">
                       {activity.title}
                     </h4>
-                    <p className="text-xs md:text-sm text-gray-600 mb-2">
+                    <p className="text-xs md:text-sm text-text-secondary mb-2">
                       {activity.tagline}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {activity.requiresPermit && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-alert-amber text-text-slate">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-badge-warning text-text-primary border border-surface-divider">
                           Permit Required
                         </span>
                       )}
                       {activity.requiresShuttle && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-alert-amber text-text-slate">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-badge-warning text-text-primary border border-surface-divider">
                           Shuttle Required
                         </span>
                       )}
@@ -395,7 +395,7 @@ export default function AddActivityDrawer({
                   <button
                     type="button"
                     onClick={() => handleAddActivity(activity)}
-                    className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-brand-forest text-white text-sm md:text-base font-medium hover:bg-brand-sage transition"
+                    className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-brand-primary text-white text-sm md:text-base font-medium hover:bg-brand-hover transition"
                   >
                     Add
                   </button>
@@ -403,7 +403,7 @@ export default function AddActivityDrawer({
               ))}
             </div>
             {filteredActivities.length === 0 && (
-              <p className="text-sm md:text-base text-gray-600 text-center py-8">
+              <p className="text-sm md:text-base text-text-secondary text-center py-8">
                 No activities found. Try adjusting your filters.
               </p>
             )}

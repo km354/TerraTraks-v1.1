@@ -22,7 +22,7 @@ export default function Header() {
     <header className="border-b border-surface-divider bg-white">
       <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
         {/* Logo */}
-        <Link href="/" className="text-lg md:text-xl font-semibold text-text-slate">
+        <Link href="/" className="text-lg md:text-xl font-semibold text-text-primary">
           🌲 TerraTraks
         </Link>
 
@@ -30,25 +30,25 @@ export default function Header() {
         <nav className="flex items-center gap-2">
           <Link
             href="/trips"
-            className="text-sm md:text-base text-text-slate hover:bg-surface-divider px-3 py-1.5 rounded-full font-medium"
+            className="text-sm md:text-base text-text-primary hover:bg-surface-divider px-3 py-1.5 rounded-full font-medium"
           >
             My Trips
           </Link>
           <Link
             href="/pricing"
-            className="text-sm md:text-base text-text-slate hover:bg-surface-divider px-3 py-1.5 rounded-full font-medium"
+            className="text-sm md:text-base text-text-primary hover:bg-surface-divider px-3 py-1.5 rounded-full font-medium"
           >
             Pricing
           </Link>
           <button
             onClick={handleLogin}
-            className="text-sm md:text-base text-text-slate hover:bg-surface-divider px-3 py-1.5 rounded-full font-medium"
+            className="text-sm md:text-base text-text-primary hover:bg-surface-divider px-3 py-1.5 rounded-full font-medium"
           >
             Log in
           </button>
           <button
             onClick={handleSignup}
-            className="bg-brand-forest text-white font-semibold text-sm md:text-base px-4 py-2 rounded-full hover:bg-brand-sage transition"
+            className="bg-brand-primary text-white font-semibold text-sm md:text-base px-4 py-2 rounded-full hover:bg-brand-hover transition"
           >
             Sign up
           </button>

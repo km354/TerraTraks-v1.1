@@ -67,10 +67,10 @@ export default function HeroSection() {
   return (
     <section id="hero-input" className="space-y-6 md:space-y-8">
       <div>
-        <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-text-slate">
+        <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-text-primary">
           Your Personal Planner for National Parks
         </h1>
-        <p className="mt-4 text-base md:text-lg text-gray-600">
+        <p className="mt-4 text-base md:text-lg text-text-secondary">
           Plan multi-park road trips without spreadsheets.
         </p>
       </div>
@@ -78,7 +78,7 @@ export default function HeroSection() {
       <div className="mt-4 rounded-xl border border-surface-divider bg-white p-4 md:p-6 shadow-card space-y-3">
         <label
           htmlFor="park-search"
-          className="text-sm md:text-base font-medium text-text-slate"
+          className="text-sm md:text-base font-medium text-text-primary"
         >
           Which National Parks are you visiting?
         </label>
@@ -90,7 +90,7 @@ export default function HeroSection() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Type a park name..."
-            className="w-full rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-brand-forest/60"
+            className="w-full rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-black/20"
           />
 
           {options.length > 0 && (
@@ -121,14 +121,14 @@ export default function HeroSection() {
                 onDragEnd={handleDragEnd}
                 className="inline-flex items-center gap-2 rounded-full bg-surface-divider px-3 py-1.5 text-sm md:text-base cursor-move"
               >
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-forest text-xs text-white">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-primary text-xs text-white">
                   {index + 1}
                 </span>
                 <span>{park}</span>
                 <button
                   type="button"
                   onClick={() => handleRemovePark(index)}
-                  className="text-xs text-gray-600 hover:text-gray-900 ml-1"
+                  className="text-xs text-text-secondary hover:text-gray-900 ml-1"
                   aria-label={`Remove ${park}`}
                 >
                   ×

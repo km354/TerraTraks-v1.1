@@ -35,7 +35,7 @@ export default function PopularTripsSection() {
 
   return (
     <section className="space-y-4 md:space-y-6">
-      <h2 className="text-3xl md:text-4xl font-semibold text-text-slate">
+      <h2 className="text-3xl md:text-4xl font-semibold text-text-primary">
         Or start with a popular trip
       </h2>
 
@@ -53,10 +53,10 @@ export default function PopularTripsSection() {
               </div>
             </div>
             <div className="p-4 space-y-1">
-              <h3 className="text-base md:text-lg font-semibold text-text-slate">
+              <h3 className="text-base md:text-lg font-semibold text-text-primary">
                 {trip.name}
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-text-secondary">
                 {trip.parks} parks • {trip.days} days
               </p>
             </div>

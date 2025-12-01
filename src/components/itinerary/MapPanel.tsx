@@ -120,8 +120,8 @@ export default function MapPanel({
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center space-y-2">
             <div className="text-4xl">🗺️</div>
-            <p className="text-sm text-gray-600">Google Maps will load here</p>
-            <p className="text-xs text-gray-500">
+            <p className="text-sm text-text-secondary">Google Maps will load here</p>
+            <p className="text-xs text-text-secondary">
               {parks.length} parks, {activities.length} activities
             </p>
           </div>
@@ -155,7 +155,7 @@ export default function MapPanel({
                 <div
                   className={`flex items-center justify-center rounded-full transition-all ${
                     isSelected && isHighlighted
-                      ? "bg-brand-forest text-white shadow-lg"
+                      ? "bg-brand-primary text-white shadow-lg"
                       : "bg-gray-400 text-white opacity-50"
                   }`}
                   style={{
@@ -167,7 +167,7 @@ export default function MapPanel({
                   🌲
                 </div>
                 {isSelected && park.day && (
-                  <div className="absolute -top-2 -right-2 bg-brand-forest text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  <div className="absolute -top-2 -right-2 bg-brand-primary text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                     {park.day}
                   </div>
                 )}

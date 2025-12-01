@@ -9,19 +9,20 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          forest: "#2E6F4E",
-          sage: "#8FC89C",
+          primary: "#000000",
+          hover: "#222222",
         },
         surface: {
           white: "#FFFFFF",
-          divider: "#F6F6F6",
-          background: "#E9ECEF",
+          divider: "#EBEBEB",
+          background: "#F7F7F7",
         },
         text: {
-          slate: "#333A41",
+          primary: "#222222",
+          secondary: "#717171",
         },
-        alert: {
-          amber: "#F6B139",
+        badge: {
+          warning: "#F5F5F5",
         },
       },
       borderRadius: {

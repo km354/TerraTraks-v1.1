@@ -338,8 +338,8 @@ function ItineraryContent() {
               onClick={() => handleSidebarClick(item.sectionId)}
               className={`px-3 py-2 rounded-lg cursor-pointer flex items-center justify-between text-left ${
                 activeSection === item.id
-                  ? "bg-surface-background text-text-slate font-semibold border border-brand-forest/30"
-                  : "text-gray-600 hover:bg-surface-background"
+                  ? "bg-surface-background text-text-primary font-semibold border border-black/10"
+                  : "text-text-secondary hover:bg-surface-background"
               }`}
             >
               <span>{item.label}</span>
@@ -358,7 +358,7 @@ function ItineraryContent() {
                     console.log("Logout clicked");
                   }
                 }}
-                className="px-3 py-2 rounded-lg cursor-pointer flex items-center justify-between text-left text-gray-600 hover:bg-surface-background w-full"
+                className="px-3 py-2 rounded-lg cursor-pointer flex items-center justify-between text-left text-text-secondary hover:bg-surface-background w-full"
               >
                 <span>{item.label}</span>
               </button>
@@ -379,12 +379,12 @@ function ItineraryContent() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search activities, viewpoints, hikes, and POIs"
-              className="flex-1 rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-brand-forest/60"
+              className="flex-1 rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-black/20"
             />
             <select
               value={selectedDay}
               onChange={(e) => setSelectedDay(e.target.value)}
-              className="rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-brand-forest/60 bg-white"
+              className="rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-black/20 bg-white"
               style={{ maxHeight: "120px" }}
             >
               <option value="all">All days</option>
@@ -405,38 +405,38 @@ function ItineraryContent() {
           }}
           className="space-y-4"
         >
-          <h2 className="text-2xl md:text-3xl font-semibold text-text-slate">
+          <h2 className="text-2xl md:text-3xl font-semibold text-text-primary">
             Trip Overview
           </h2>
           <div className="bg-white rounded-xl border border-surface-divider p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="text-sm text-gray-600">Dates</label>
-                <p className="text-base md:text-lg font-medium text-text-slate">
+                <label className="text-sm text-text-secondary">Dates</label>
+                <p className="text-base md:text-lg font-medium text-text-primary">
                   June 15 - June 20, 2024
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">Number of Parks</label>
-                <p className="text-base md:text-lg font-medium text-text-slate">
+                <label className="text-sm text-text-secondary">Number of Parks</label>
+                <p className="text-base md:text-lg font-medium text-text-primary">
                   {parks.length} parks
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">Pace</label>
-                <p className="text-base md:text-lg font-medium text-text-slate">
+                <label className="text-sm text-text-secondary">Pace</label>
+                <p className="text-base md:text-lg font-medium text-text-primary">
                   Balanced
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">Total Driving</label>
-                <p className="text-base md:text-lg font-medium text-text-slate">
+                <label className="text-sm text-text-secondary">Total Driving</label>
+                <p className="text-base md:text-lg font-medium text-text-primary">
                   12 hours • 450 miles
                 </p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">Travelers</label>
-                <p className="text-base md:text-lg font-medium text-text-slate">
+                <label className="text-sm text-text-secondary">Travelers</label>
+                <p className="text-base md:text-lg font-medium text-text-primary">
                   2 travelers
                 </p>
               </div>
@@ -452,7 +452,7 @@ function ItineraryContent() {
           }}
           className="space-y-4"
         >
-          <h2 className="text-2xl md:text-3xl font-semibold text-text-slate">
+          <h2 className="text-2xl md:text-3xl font-semibold text-text-primary">
             Parks
           </h2>
           <div className="space-y-2">
@@ -461,16 +461,16 @@ function ItineraryContent() {
                 key={index}
                 className="flex items-center gap-3 p-3 rounded-lg border border-surface-divider bg-white hover:bg-surface-background transition group"
               >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-forest text-xs text-white font-semibold flex-shrink-0">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-primary text-xs text-white font-semibold flex-shrink-0">
                   {index + 1}
                 </span>
-                <span className="flex-1 text-sm md:text-base text-text-slate">
+                <span className="flex-1 text-sm md:text-base text-text-primary">
                   {park}
                 </span>
                 <button
                   type="button"
                   onClick={() => handleRemovePark(index)}
-                  className="opacity-0 group-hover:opacity-100 transition text-gray-600 hover:text-gray-900 text-sm md:text-base"
+                  className="opacity-0 group-hover:opacity-100 transition text-text-secondary hover:text-gray-900 text-sm md:text-base"
                   aria-label={`Remove ${park}`}
                 >
                   ×
@@ -479,7 +479,7 @@ function ItineraryContent() {
             ))}
             <button
               onClick={handleAddPark}
-              className="w-full mt-4 px-4 py-2 rounded-lg border border-surface-divider bg-white hover:bg-surface-background text-sm md:text-base text-text-slate font-medium transition"
+              className="w-full mt-4 px-4 py-2 rounded-lg border border-surface-divider bg-white hover:bg-surface-background text-sm md:text-base text-text-primary font-medium transition"
             >
               Add another park
             </button>
@@ -494,7 +494,7 @@ function ItineraryContent() {
           }}
           className="space-y-4"
         >
-          <h2 className="text-2xl md:text-3xl font-semibold text-text-slate">
+          <h2 className="text-2xl md:text-3xl font-semibold text-text-primary">
             Itinerary
           </h2>
           <div className="space-y-4">
@@ -507,7 +507,7 @@ function ItineraryContent() {
                     key={day}
                     className="bg-white rounded-xl border border-surface-divider p-6 space-y-3"
                   >
-                    <h3 className="text-lg md:text-xl font-semibold text-text-slate">
+                    <h3 className="text-lg md:text-xl font-semibold text-text-primary">
                       Day {day} – {getParkForDay(day)}
                     </h3>
                     {dayActivities.length > 0 ? (
@@ -519,10 +519,10 @@ function ItineraryContent() {
                           >
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="text-sm md:text-base font-medium text-text-slate">
+                                <span className="text-sm md:text-base font-medium text-text-primary">
                                   {activity.name}
                                 </span>
-                                <span className="text-xs text-gray-500 capitalize">
+                                <span className="text-xs text-text-secondary capitalize">
                                   {activity.type}
                                 </span>
                               </div>
@@ -532,18 +532,18 @@ function ItineraryContent() {
                                     href={activity.linkUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-xs text-brand-forest hover:text-brand-sage underline"
+                                    className="text-xs text-brand-primary hover:text-brand-hover underline"
                                   >
                                     View details
                                   </a>
                                 )}
                                 {activity.requiresPermit && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-alert-amber text-text-slate">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-badge-warning text-text-primary border border-surface-divider">
                                     Permit
                                   </span>
                                 )}
                                 {activity.requiresShuttle && (
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-alert-amber text-text-slate">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-badge-warning text-text-primary border border-surface-divider">
                                     Shuttle
                                   </span>
                                 )}
@@ -552,7 +552,7 @@ function ItineraryContent() {
                             <button
                               type="button"
                               onClick={() => handleDeleteActivity(activity.id)}
-                              className="opacity-0 group-hover:opacity-100 transition text-xs text-gray-500 hover:text-red-500 flex-shrink-0"
+                              className="opacity-0 group-hover:opacity-100 transition text-xs text-text-secondary hover:text-red-500 flex-shrink-0"
                               aria-label={`Remove ${activity.name}`}
                             >
                               ×
@@ -561,13 +561,13 @@ function ItineraryContent() {
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-text-secondary">
                         No activities for this day.
                       </p>
                     )}
                     <button
                       onClick={() => handleOpenDrawer(day)}
-                      className="mt-2 px-4 py-2 rounded-lg border border-surface-divider bg-white hover:bg-surface-background text-sm md:text-base text-text-slate font-medium transition"
+                      className="mt-2 px-4 py-2 rounded-lg border border-surface-divider bg-white hover:bg-surface-background text-sm md:text-base text-text-primary font-medium transition"
                     >
                       Add activity
                     </button>
@@ -576,7 +576,7 @@ function ItineraryContent() {
               })
             ) : (
               <div className="bg-white rounded-xl border border-surface-divider p-6">
-                <p className="text-sm md:text-base text-gray-600">
+                <p className="text-sm md:text-base text-text-secondary">
                   {searchTerm
                     ? "No activities match your search."
                     : "No activities added yet."}
@@ -594,11 +594,11 @@ function ItineraryContent() {
           }}
           className="space-y-4"
         >
-          <h2 className="text-2xl md:text-3xl font-semibold text-text-slate">
+          <h2 className="text-2xl md:text-3xl font-semibold text-text-primary">
             Alerts & Permits
           </h2>
           <div className="bg-white rounded-xl border border-surface-divider p-6">
-            <p className="text-sm md:text-base text-gray-600">
+            <p className="text-sm md:text-base text-text-secondary">
               Any closures, alerts, shuttle requirements, or permits will appear here.
             </p>
           </div>

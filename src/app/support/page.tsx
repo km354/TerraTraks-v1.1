@@ -64,7 +64,7 @@ export default function SupportPage() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl md:text-3xl font-semibold text-text-slate">
+      <h1 className="text-2xl md:text-3xl font-semibold text-text-primary">
         How can we help?
       </h1>
 
@@ -75,13 +75,13 @@ export default function SupportPage() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Search help articles and FAQs"
-          className="w-full rounded-lg border border-surface-divider px-4 py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-brand-forest/60"
+          className="w-full rounded-lg border border-surface-divider px-4 py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-black/20"
         />
       </div>
 
       {/* Recommended for you */}
       <section className="space-y-4">
-        <h2 className="text-lg md:text-xl font-semibold text-text-slate">
+        <h2 className="text-lg md:text-xl font-semibold text-text-primary">
           Recommended for you
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -90,10 +90,10 @@ export default function SupportPage() {
               key={index}
               className="bg-white rounded-xl border border-surface-divider p-4 hover:shadow-card transition cursor-pointer"
             >
-              <h3 className="text-sm md:text-base font-semibold text-text-slate mb-1">
+              <h3 className="text-sm md:text-base font-semibold text-text-primary mb-1">
                 {topic.title}
               </h3>
-              <p className="text-xs md:text-sm text-gray-600">
+              <p className="text-xs md:text-sm text-text-secondary">
                 {topic.description}
               </p>
             </div>
@@ -103,7 +103,7 @@ export default function SupportPage() {
 
       {/* Browse by topic */}
       <section className="space-y-4">
-        <h2 className="text-lg md:text-xl font-semibold text-text-slate">
+        <h2 className="text-lg md:text-xl font-semibold text-text-primary">
           Browse by topic
         </h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -113,7 +113,7 @@ export default function SupportPage() {
               className="bg-white rounded-xl border border-surface-divider p-4 text-center hover:shadow-card transition cursor-pointer"
             >
               <div className="text-2xl mb-2">{topic.icon}</div>
-              <h3 className="text-sm md:text-base font-medium text-text-slate">
+              <h3 className="text-sm md:text-base font-medium text-text-primary">
                 {topic.title}
               </h3>
             </div>
@@ -123,7 +123,7 @@ export default function SupportPage() {
 
       {/* FAQ */}
       <section className="space-y-4">
-        <h2 className="text-lg md:text-xl font-semibold text-text-slate">
+        <h2 className="text-lg md:text-xl font-semibold text-text-primary">
           FAQ
         </h2>
         <div className="space-y-2">
@@ -138,16 +138,16 @@ export default function SupportPage() {
                 }
                 className="w-full px-4 py-3 text-left flex items-center justify-between hover:bg-surface-background transition"
               >
-                <span className="text-sm md:text-base font-medium text-text-slate">
+                <span className="text-sm md:text-base font-medium text-text-primary">
                   {item.question}
                 </span>
-                <span className="text-lg text-gray-500">
+                <span className="text-lg text-text-secondary">
                   {openFaqIndex === index ? "−" : "+"}
                 </span>
               </button>
               {openFaqIndex === index && (
                 <div className="px-4 pb-3">
-                  <p className="text-sm md:text-base text-gray-600">
+                  <p className="text-sm md:text-base text-text-secondary">
                     {item.answer}
                   </p>
                 </div>
@@ -159,14 +159,14 @@ export default function SupportPage() {
 
       {/* Contact us */}
       <section className="bg-white rounded-xl border border-surface-divider p-4 md:p-6">
-        <h2 className="text-lg md:text-xl font-semibold text-text-slate mb-2">
+        <h2 className="text-lg md:text-xl font-semibold text-text-primary mb-2">
           Contact us
         </h2>
-        <p className="text-sm md:text-base text-gray-600">
+        <p className="text-sm md:text-base text-text-secondary">
           Email us at{" "}
           <a
             href="mailto:terratraks00@gmail.com"
-            className="text-brand-forest hover:text-brand-sage underline"
+            className="text-brand-primary hover:text-brand-hover underline"
           >
             terratraks00@gmail.com
           </a>

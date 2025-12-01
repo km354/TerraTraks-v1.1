@@ -53,12 +53,12 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
     >
       <div className="max-w-md w-full bg-white rounded-xl shadow-card p-6 md:p-8 mx-4">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl md:text-2xl font-semibold text-text-slate">
+          <h2 className="text-xl md:text-2xl font-semibold text-text-primary">
             Log in
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-900 text-xl font-semibold"
+            className="text-text-secondary hover:text-gray-900 text-xl font-semibold"
             aria-label="Close modal"
           >
             ×
@@ -69,7 +69,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           <div>
             <label
               htmlFor="login-email"
-              className="block text-sm font-medium text-text-slate mb-2"
+              className="block text-sm font-medium text-text-primary mb-2"
             >
               Email
             </label>
@@ -79,7 +79,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-lg border border-surface-divider px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-brand-forest/60"
+              className="w-full rounded-lg border border-surface-divider px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-black/20"
               placeholder="you@example.com"
             />
           </div>
@@ -87,7 +87,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           <div>
             <label
               htmlFor="login-password"
-              className="block text-sm font-medium text-text-slate mb-2"
+              className="block text-sm font-medium text-text-primary mb-2"
             >
               Password
             </label>
@@ -97,7 +97,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full rounded-lg border border-surface-divider px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-brand-forest/60"
+              className="w-full rounded-lg border border-surface-divider px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-black/20"
               placeholder="••••••••"
             />
           </div>
@@ -105,7 +105,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full px-4 py-2 rounded-lg bg-brand-forest text-white text-base font-semibold hover:bg-brand-sage transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2 rounded-lg bg-brand-primary text-white text-base font-semibold hover:bg-brand-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? "Logging in..." : "Log in"}
           </button>

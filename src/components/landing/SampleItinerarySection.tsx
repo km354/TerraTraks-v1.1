@@ -1,16 +1,16 @@
 export default function SampleItinerarySection() {
   return (
     <section className="space-y-4 md:space-y-6">
-      <h2 className="text-3xl md:text-4xl font-semibold text-text-slate">
+      <h2 className="text-3xl md:text-4xl font-semibold text-text-primary">
         What your TerraTraks Itinerary looks like
       </h2>
 
       <div className="grid gap-6 md:grid-cols-2 items-center">
-        <div className="aspect-[4/3] rounded-xl bg-surface-background flex items-center justify-center text-sm md:text-base text-gray-500">
+        <div className="aspect-[4/3] rounded-xl bg-surface-background flex items-center justify-center text-sm md:text-base text-text-secondary">
           Sample itinerary screenshot
         </div>
 
-        <div className="text-sm md:text-base text-gray-600 space-y-2">
+        <div className="text-sm md:text-base text-text-secondary space-y-2">
           <p>
             Your personalized itinerary includes a day-by-day breakdown of your trip with recommended activities, driving times, and park highlights.
           </p>

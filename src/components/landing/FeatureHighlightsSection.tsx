@@ -24,7 +24,7 @@ const FEATURES = [
 export default function FeatureHighlightsSection() {
   return (
     <section className="space-y-4 md:space-y-6">
-      <h2 className="text-3xl md:text-4xl font-semibold text-text-slate">
+      <h2 className="text-3xl md:text-4xl font-semibold text-text-primary">
         Why travelers use TerraTraks
       </h2>
 
@@ -35,10 +35,10 @@ export default function FeatureHighlightsSection() {
             className="bg-white rounded-xl shadow-card p-4 md:p-5 space-y-2"
           >
             <div className="text-2xl">{feature.icon}</div>
-            <h3 className="text-base md:text-lg font-semibold text-text-slate">
+            <h3 className="text-base md:text-lg font-semibold text-text-primary">
               {feature.title}
             </h3>
-            <p className="text-sm md:text-base text-gray-600">
+            <p className="text-sm md:text-base text-text-secondary">
               {feature.description}
             </p>
           </div>
