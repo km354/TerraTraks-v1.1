@@ -7,7 +7,8 @@ import LandingCtaSection from "@/components/landing/LandingCtaSection";
 
 export default function Home() {
   return (
-    <div className="space-y-16 md:space-y-24">
+    // Reduced vertical spacing between sections so PopularTrips appears closer to Hero
+    <div className="space-y-8 md:space-y-12">
       <HeroSection />
       <PopularTripsSection />
       <BeforeAfterSection />
@@ -17,4 +18,3 @@ export default function Home() {
     </div>
   );
 }
-

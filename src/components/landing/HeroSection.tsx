@@ -146,7 +146,10 @@ export default function HeroSection() {
   };
 
   return (
-    <section id="hero-input" className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] min-h-[600px] md:min-h-[700px] flex items-center">
+    <section
+      id="hero-input"
+      className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] min-h-[35vh] md:min-h-[40vh] flex items-center"
+    >
       {/* Full-width background image */}
       <div className="absolute inset-0 -z-0">
         <Image
@@ -162,11 +165,11 @@ export default function HeroSection() {
       </div>
 
       {/* Content overlaid on image */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 py-12 md:py-20">
-        <div className="flex flex-col items-center space-y-8 md:space-y-12">
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
+        <div className="flex flex-col items-center space-y-6 md:space-y-8">
           {/* Large centered headline */}
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white drop-shadow-lg">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white drop-shadow-lg">
               Your Personal Planner for National Parks
             </h1>
             <p className="mt-4 text-lg md:text-xl text-white/95 drop-shadow-md">
@@ -174,7 +177,7 @@ export default function HeroSection() {
             </p>
           </div>
 
-          {/* Prominent search bar - homes.com style */}
+          {/* Prominent search bar */}
           <div className="w-full max-w-4xl relative">
             <div className="bg-white rounded-2xl shadow-2xl p-2 md:p-3">
               <div className="flex items-center">
@@ -193,12 +196,12 @@ export default function HeroSection() {
                     }, 200);
                   }}
                   placeholder="Search for national parks..."
-                  className="flex-1 rounded-xl border-0 px-4 md:px-6 py-3 md:py-4 text-base md:text-lg focus:outline-none"
+                  className="flex-1 rounded-xl border-0 px-4 md:px-6 py-2 md:py-3 text-base md:text-lg focus:outline-none"
                 />
                 <button
                   type="button"
                   onClick={handleInputClick}
-                  className="ml-2 rounded-xl bg-primary text-white px-6 md:px-8 py-3 md:py-4 font-semibold hover:bg-primary-dark transition flex items-center gap-2"
+                  className="ml-2 rounded-xl bg-primary text-white px-6 md:px-8 py-2 md:py-3 font-semibold hover:bg-primary-dark transition flex items-center gap-2"
                 >
                   <span>Search</span>
                   <svg
@@ -262,7 +265,7 @@ export default function HeroSection() {
                   <button
                     type="button"
                     onClick={handleStartPlanning}
-                    className="rounded-xl bg-primary text-white px-8 md:px-12 py-3 md:py-4 text-base md:text-lg font-semibold hover:bg-primary-dark transition shadow-lg"
+                    className="rounded-xl bg-primary text-white px-8 md:px-12 py-2 md:py-3 text-base md:text-lg font-semibold hover:bg-primary-dark transition shadow-lg"
                   >
                     Start Planning
                   </button>
