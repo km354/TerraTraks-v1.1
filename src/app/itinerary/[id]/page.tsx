@@ -9,6 +9,22 @@ import MapPanel, {
   ParkMarker,
   ActivityMarker,
 } from "@/components/itinerary/MapPanel";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const SIDEBAR_ITEMS = [
   { id: "overview", label: "Trip Overview", sectionId: "section-overview" },
@@ -34,6 +50,56 @@ type ItineraryActivity = {
   requiresShuttle?: boolean;
 };
 
+interface SortableParkItemProps {
+  park: string;
+  index: number;
+  onRemove: () => void;
+}
+
+function SortableParkItem({ park, index, onRemove }: SortableParkItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: park });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-3 p-3 rounded-lg border border-surface-divider bg-white hover:bg-surface-background transition cursor-move group"
+    >
+      <span
+        {...attributes}
+        {...listeners}
+        className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-white font-semibold flex-shrink-0 cursor-grab active:cursor-grabbing"
+      >
+        {index + 1}
+      </span>
+      <span className="flex-1 text-sm md:text-base text-text-primary">
+        {park}
+      </span>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="opacity-0 group-hover:opacity-100 transition text-text-secondary hover:text-gray-900 text-sm md:text-base"
+        aria-label={`Remove ${park}`}
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
 function ItineraryContent() {
   const params = useParams();
   const itineraryId = params.id as string;
@@ -44,6 +110,26 @@ function ItineraryContent() {
     "Yellowstone National Park",
     "Grand Teton National Park",
   ]);
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle drag end for parks
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setParks((items) => {
+        const oldIndex = items.indexOf(active.id as string);
+        const newIndex = items.indexOf(over.id as string);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
   const [activities, setActivities] = useState<ItineraryActivity[]>([
     {
       id: "1",
@@ -328,10 +414,10 @@ function ItineraryContent() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+    <div className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] flex flex-col md:flex-row gap-0 h-screen overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-full md:w-64 flex-shrink-0">
-        <div className="md:sticky md:top-24 space-y-2 text-sm md:text-base flex flex-col h-full">
+      <aside className="w-full md:w-64 flex-shrink-0 border-r border-surface-divider bg-white h-full overflow-y-auto">
+        <div className="md:sticky md:top-24 space-y-2 text-sm md:text-base flex flex-col h-full p-4">
           {SIDEBAR_ITEMS.map((item) => (
             <button
               key={item.id}
@@ -368,11 +454,12 @@ function ItineraryContent() {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col lg:flex-row gap-6">
-        {/* Itinerary Content */}
-        <div className="flex-1 space-y-8">
-        {/* Sticky Search Bar */}
-        <div className="sticky top-16 z-10 bg-white/90 backdrop-blur border-b border-surface-divider py-3 mb-4 -mx-4 px-4">
+      <div className="flex-1 flex flex-col lg:flex-row gap-0 h-full overflow-hidden">
+        {/* Itinerary Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto h-full">
+          <div className="max-w-2xl mx-auto p-6 space-y-8">
+            {/* Sticky Search Bar */}
+            <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-surface-divider py-3 mb-4 -mx-6 px-6">
           <div className="flex gap-3 items-center">
             <input
               type="text"
@@ -455,35 +542,30 @@ function ItineraryContent() {
           <h2 className="text-2xl md:text-3xl font-semibold text-text-primary">
             Parks
           </h2>
-          <div className="space-y-2">
-            {parks.map((park, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-3 p-3 rounded-lg border border-surface-divider bg-white hover:bg-surface-background transition group"
-              >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-primary text-xs text-white font-semibold flex-shrink-0">
-                  {index + 1}
-                </span>
-                <span className="flex-1 text-sm md:text-base text-text-primary">
-                  {park}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleRemovePark(index)}
-                  className="opacity-0 group-hover:opacity-100 transition text-text-secondary hover:text-gray-900 text-sm md:text-base"
-                  aria-label={`Remove ${park}`}
-                >
-                  ×
-                </button>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={parks}>
+              <div className="space-y-2">
+                {parks.map((park, index) => (
+                  <SortableParkItem
+                    key={park}
+                    park={park}
+                    index={index}
+                    onRemove={() => handleRemovePark(index)}
+                  />
+                ))}
               </div>
-            ))}
-            <button
-              onClick={handleAddPark}
-              className="w-full mt-4 px-4 py-2 rounded-lg border border-surface-divider bg-white hover:bg-surface-background text-sm md:text-base text-text-primary font-medium transition"
-            >
-              Add another park
-            </button>
-          </div>
+            </SortableContext>
+          </DndContext>
+          <button
+            onClick={handleAddPark}
+            className="w-full mt-4 px-4 py-2 rounded-lg border border-surface-divider bg-white hover:bg-surface-background text-sm md:text-base text-text-primary font-medium transition"
+          >
+            Add another park
+          </button>
         </section>
 
         {/* Itinerary Section */}
@@ -603,16 +685,19 @@ function ItineraryContent() {
             </p>
           </div>
         </section>
+          </div>
         </div>
 
-        {/* Map Panel */}
-        <MapPanel
-          parks={parkMarkers}
-          activities={activityMarkers}
-          selectedDay={selectedDay === "all" ? null : parseInt(selectedDay)}
-          onParkClick={handleParkClick}
-          onActivityHover={handleActivityHover}
-        />
+        {/* Map Panel - Fixed full height */}
+        <div className="hidden lg:flex w-[45%] xl:w-[50%] flex-shrink-0 border-l border-surface-divider h-full overflow-hidden">
+          <MapPanel
+            parks={parkMarkers}
+            activities={activityMarkers}
+            selectedDay={selectedDay === "all" ? null : parseInt(selectedDay)}
+            onParkClick={handleParkClick}
+            onActivityHover={handleActivityHover}
+          />
+        </div>
       </div>
 
       {/* Add Activity Drawer */}

@@ -79,7 +79,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-lg border border-surface-divider px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-black/20"
+              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-base focus:outline-none focus:border-secondary"
               placeholder="you@example.com"
             />
           </div>
@@ -97,7 +97,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full rounded-lg border border-surface-divider px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-black/20"
+              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-base focus:outline-none focus:border-secondary"
               placeholder="••••••••"
             />
           </div>
@@ -105,7 +105,7 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full px-4 py-2 rounded-lg bg-brand-primary text-white text-base font-semibold hover:bg-brand-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2 rounded-lg bg-primary text-white text-base font-semibold hover:bg-primary-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? "Logging in..." : "Log in"}
           </button>

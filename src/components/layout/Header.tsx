@@ -48,7 +48,7 @@ export default function Header() {
           </button>
           <button
             onClick={handleSignup}
-            className="bg-brand-primary text-white font-semibold text-sm md:text-base px-4 py-2 rounded-full hover:bg-brand-hover transition"
+            className="bg-primary text-white font-semibold text-sm md:text-base px-4 py-2 rounded-full hover:bg-primary-dark transition"
           >
             Sign up
           </button>

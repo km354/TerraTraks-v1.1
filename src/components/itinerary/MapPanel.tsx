@@ -106,7 +106,7 @@ export default function MapPanel({
   };
 
   return (
-    <div className="w-full lg:w-[40%] h-[400px] lg:h-[600px] rounded-xl border border-surface-divider bg-surface-background relative overflow-hidden">
+    <div className="w-full h-full bg-surface-background relative overflow-hidden">
       {/* Placeholder for Google Maps */}
       <div
         ref={mapRef}
@@ -155,7 +155,7 @@ export default function MapPanel({
                 <div
                   className={`flex items-center justify-center rounded-full transition-all ${
                     isSelected && isHighlighted
-                      ? "bg-brand-primary text-white shadow-lg"
+                      ? "bg-primary text-white shadow-lg"
                       : "bg-gray-400 text-white opacity-50"
                   }`}
                   style={{
@@ -167,7 +167,7 @@ export default function MapPanel({
                   🌲
                 </div>
                 {isSelected && park.day && (
-                  <div className="absolute -top-2 -right-2 bg-brand-primary text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  <div className="absolute -top-2 -right-2 bg-primary text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
                     {park.day}
                   </div>
                 )}

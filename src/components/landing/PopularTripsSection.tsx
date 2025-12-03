@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 const POPULAR_TRIPS = [
   {
@@ -34,23 +35,27 @@ export default function PopularTripsSection() {
   };
 
   return (
-    <section className="space-y-4 md:space-y-6">
-      <h2 className="text-3xl md:text-4xl font-semibold text-text-primary">
-        Or start with a popular trip
-      </h2>
+    <section className="bg-white py-12 md:py-16 space-y-4 md:space-y-6">
+      <div className="max-w-6xl mx-auto space-y-4 md:space-y-6">
+        <h2 className="text-3xl md:text-4xl font-semibold text-primary">
+          Or start with a popular trip
+        </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {POPULAR_TRIPS.map((trip) => (
           <div
             key={trip.id}
             onClick={() => handleCardClick(trip.id)}
-            className="flex flex-col rounded-xl bg-white shadow-card overflow-hidden cursor-pointer transition hover:-translate-y-1 hover:shadow-lg"
+            className="flex flex-col rounded-xl bg-white border border-primary/10 shadow-sm overflow-hidden cursor-pointer transition hover:-translate-y-1 hover:shadow-md hover:border-primary/20"
           >
-            <div className="h-40 w-full bg-surface-background relative">
-              {/* Placeholder div - images will be added later */}
-              <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">
-                {trip.name}
-              </div>
+            <div className="h-40 w-full bg-gray-50 relative overflow-hidden">
+              <Image
+                src={trip.imageUrl}
+                alt={trip.name}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              />
             </div>
             <div className="p-4 space-y-1">
               <h3 className="text-base md:text-lg font-semibold text-text-primary">
@@ -62,6 +67,7 @@ export default function PopularTripsSection() {
             </div>
           </div>
         ))}
+      </div>
       </div>
     </section>
   );

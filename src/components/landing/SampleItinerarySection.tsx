@@ -1,12 +1,13 @@
 export default function SampleItinerarySection() {
   return (
-    <section className="space-y-4 md:space-y-6">
-      <h2 className="text-3xl md:text-4xl font-semibold text-text-primary">
-        What your TerraTraks Itinerary looks like
-      </h2>
+    <section className="bg-sand/20 py-12 md:py-16 -mx-4 md:-mx-6 px-4 md:px-6 space-y-4 md:space-y-6">
+      <div className="max-w-6xl mx-auto space-y-4 md:space-y-6">
+        <h2 className="text-3xl md:text-4xl font-semibold text-primary">
+          What your TerraTraks Itinerary looks like
+        </h2>
 
       <div className="grid gap-6 md:grid-cols-2 items-center">
-        <div className="aspect-[4/3] rounded-xl bg-surface-background flex items-center justify-center text-sm md:text-base text-text-secondary">
+        <div className="aspect-[4/3] rounded-xl bg-white border border-primary/10 shadow-sm flex items-center justify-center text-sm md:text-base text-text-secondary">
           Sample itinerary screenshot
         </div>
 
@@ -21,6 +22,7 @@ export default function SampleItinerarySection() {
             Export your itinerary as a PDF or share it with your travel companions to keep everyone on the same page.
           </p>
         </div>
+      </div>
       </div>
     </section>
   );

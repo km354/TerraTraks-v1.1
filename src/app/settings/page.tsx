@@ -43,7 +43,7 @@ export default function SettingsPage() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-black/20"
+              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary"
             />
           </div>
           <div>
@@ -99,7 +99,7 @@ export default function SettingsPage() {
               // TODO: Navigate to billing or open upgrade modal
               console.log("Manage subscription clicked");
             }}
-            className="px-4 py-2 rounded-lg bg-brand-primary text-white text-sm md:text-base font-medium hover:bg-brand-hover transition"
+            className="px-4 py-2 rounded-lg bg-primary text-white text-sm md:text-base font-medium hover:bg-primary-dark transition"
           >
             Manage subscription
           </button>
@@ -272,7 +272,7 @@ export default function SettingsPage() {
       <div className="flex justify-end">
         <button
           onClick={handleSave}
-          className="px-6 py-2 rounded-lg bg-brand-primary text-white text-sm md:text-base font-medium hover:bg-brand-hover transition"
+          className="px-6 py-2 rounded-lg bg-primary text-white text-sm md:text-base font-medium hover:bg-primary-dark transition"
         >
           Save changes
         </button>

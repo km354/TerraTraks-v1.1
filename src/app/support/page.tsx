@@ -75,7 +75,7 @@ export default function SupportPage() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Search help articles and FAQs"
-          className="w-full rounded-lg border border-surface-divider px-4 py-3 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-black/20"
+          className="w-full rounded-xl border border-surface-divider px-4 py-3 text-sm md:text-base focus:outline-none focus:border-secondary"
         />
       </div>
 

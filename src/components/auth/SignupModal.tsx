@@ -92,7 +92,7 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              className="w-full rounded-lg border border-surface-divider px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-black/20"
+              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-base focus:outline-none focus:border-secondary"
               placeholder="John Doe"
             />
           </div>
@@ -110,7 +110,7 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full rounded-lg border border-surface-divider px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-black/20"
+              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-base focus:outline-none focus:border-secondary"
               placeholder="you@example.com"
             />
           </div>
@@ -129,7 +129,7 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              className="w-full rounded-lg border border-surface-divider px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-black/20"
+              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-base focus:outline-none focus:border-secondary"
               placeholder="••••••••"
             />
           </div>
@@ -148,7 +148,7 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={8}
-              className="w-full rounded-lg border border-surface-divider px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-black/20"
+              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-base focus:outline-none focus:border-secondary"
               placeholder="••••••••"
             />
           </div>
@@ -156,7 +156,7 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full px-4 py-2 rounded-lg bg-brand-primary text-white text-base font-semibold hover:bg-brand-hover transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full px-4 py-2 rounded-lg bg-primary text-white text-base font-semibold hover:bg-primary-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? "Creating account..." : "Create account"}
           </button>

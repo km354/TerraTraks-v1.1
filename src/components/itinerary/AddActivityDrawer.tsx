@@ -284,7 +284,7 @@ export default function AddActivityDrawer({
                     onClick={() => handleDifficultyToggle(level)}
                     className={`px-3 py-1.5 rounded-full text-sm md:text-base font-medium transition ${
                       difficulty[level]
-                        ? "bg-brand-primary text-white"
+                        ? "bg-primary text-white"
                         : "bg-surface-background text-text-primary hover:bg-surface-divider"
                     }`}
                   >
@@ -309,7 +309,7 @@ export default function AddActivityDrawer({
                     onClick={() => handleTypeToggle(activityType)}
                     className={`px-3 py-1.5 rounded-full text-sm md:text-base font-medium transition ${
                       type[activityType]
-                        ? "bg-brand-primary text-white"
+                        ? "bg-primary text-white"
                         : "bg-surface-background text-text-primary hover:bg-surface-divider"
                     }`}
                   >
@@ -357,7 +357,7 @@ export default function AddActivityDrawer({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Browse suggestions or search for specific hikes, viewpoints, and POIs"
-              className="w-full rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-black/20"
+              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary"
             />
           </div>
 
@@ -395,7 +395,7 @@ export default function AddActivityDrawer({
                   <button
                     type="button"
                     onClick={() => handleAddActivity(activity)}
-                    className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-brand-primary text-white text-sm md:text-base font-medium hover:bg-brand-hover transition"
+                    className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-primary text-white text-sm md:text-base font-medium hover:bg-primary-dark transition"
                   >
                     Add
                   </button>
