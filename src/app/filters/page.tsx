@@ -120,6 +120,7 @@ function FiltersContent() {
     null,
   ]);
   const [isFlexibleDates, setIsFlexibleDates] = useState(false);
+  const [selectedMonths, setSelectedMonths] = useState<Date[]>([]);
   const [tripPace, setTripPace] = useState<"relaxed" | "balanced" | "packed">(
     "balanced"
   );
@@ -164,7 +165,7 @@ function FiltersContent() {
     }
   }, [searchParams]);
 
-  // Close date picker when clicking outside
+  // Close date picker when clicking outside or scrolling
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -182,12 +183,20 @@ function FiltersContent() {
       }
     };
 
+    const handleScroll = () => {
+      setShowDatePicker(false);
+    };
+
     if (showDatePicker || showAddPark) {
       document.addEventListener("mousedown", handleClickOutside);
+      if (showDatePicker) {
+        window.addEventListener("scroll", handleScroll, true);
+      }
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", handleScroll, true);
     };
   }, [showDatePicker, showAddPark]);
 
@@ -250,6 +259,16 @@ function FiltersContent() {
   };
 
   const formatDateRange = () => {
+    if (isFlexibleDates) {
+      if (selectedMonths.length === 0) return "Select months";
+      if (selectedMonths.length === 1) {
+        return selectedMonths[0].toLocaleDateString("en-US", {
+          month: "long",
+          year: "numeric",
+        });
+      }
+      return `${selectedMonths.length} months selected`;
+    }
     if (!dateRange[0]) return "Select dates";
     if (!dateRange[1]) {
       return dateRange[0].toLocaleDateString("en-US", {
@@ -309,19 +328,8 @@ function FiltersContent() {
 
         {/* Add Park Section */}
         <div className="relative" ref={parkInputRef}>
-          <button
-            type="button"
-            onClick={() => {
-              setShowAddPark(true);
-              setIsParkInputFocused(true);
-            }}
-            className="w-full mt-4 px-4 py-3 rounded-lg border-2 border-dashed border-primary/30 bg-white hover:bg-primary/5 text-primary font-medium transition text-sm md:text-base"
-          >
-            + Add another park
-          </button>
-
           {showAddPark && (
-            <div className="mt-2 relative">
+            <div className="mb-2 relative">
               <input
                 type="text"
                 value={parkSearchTerm}
@@ -348,6 +356,17 @@ function FiltersContent() {
               )}
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowAddPark(true);
+              setIsParkInputFocused(true);
+            }}
+            className="w-full mt-4 px-4 py-3 rounded-lg bg-primary text-white hover:bg-primary-dark font-medium transition text-sm md:text-base"
+          >
+            + Add another park
+          </button>
         </div>
       </section>
 
@@ -371,48 +390,126 @@ function FiltersContent() {
           Dates
         </h2>
         <div className="relative" ref={datePickerRef}>
-          <button
-            type="button"
-            onClick={() => setShowDatePicker(!showDatePicker)}
-            className="w-full rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base text-left focus:outline-none focus:border-secondary bg-white"
-          >
-            {formatDateRange()}
-          </button>
-          {showDatePicker && (
-            <div className="absolute z-50 mt-2 bg-white rounded-xl border border-surface-divider shadow-card p-4">
-              <DatePicker
-                selected={dateRange[0]}
-                onChange={(dates) => {
-                  const [start, end] = dates as [Date | null, Date | null];
-                  setDateRange([start, end]);
-                  if (start && end) {
-                    setTimeout(() => setShowDatePicker(false), 300);
-                  }
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              className="w-full rounded-xl border border-surface-divider px-3 py-2 pr-10 text-sm md:text-base text-left focus:outline-none focus:border-secondary bg-white"
+            >
+              {formatDateRange()}
+            </button>
+            {(dateRange[0] || selectedMonths.length > 0) && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDateRange([null, null]);
+                  setSelectedMonths([]);
+                  setShowDatePicker(false);
                 }}
-                startDate={dateRange[0]}
-                endDate={dateRange[1]}
-                selectsRange
-                monthsShown={2}
-                minDate={minDate}
-                maxDate={maxDate}
-                inline
-                calendarClassName="!border-0"
-                className="!border-0"
-              />
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition"
+                aria-label="Clear dates"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
+          {showDatePicker && (
+            <div className="absolute z-50 mt-2 bg-white rounded-xl shadow-lg border border-surface-divider p-4">
+              {isFlexibleDates ? (
+                <div className="w-[600px]">
+                  <div className="grid grid-cols-3 gap-3">
+                    {Array.from({ length: 12 }, (_, i) => {
+                      const month = new Date();
+                      month.setMonth(month.getMonth() + i);
+                      const monthKey = `${month.getFullYear()}-${month.getMonth()}`;
+                      const isSelected = selectedMonths.some(
+                        (m) => `${m.getFullYear()}-${m.getMonth()}` === monthKey
+                      );
+                      return (
+                        <button
+                          key={monthKey}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedMonths(
+                                selectedMonths.filter(
+                                  (m) =>
+                                    `${m.getFullYear()}-${m.getMonth()}` !== monthKey
+                                )
+                              );
+                            } else {
+                              setSelectedMonths([...selectedMonths, month]);
+                            }
+                          }}
+                          className={`px-4 py-3 rounded-lg border text-sm font-medium transition ${
+                            isSelected
+                              ? "bg-primary text-white border-primary"
+                              : "bg-white text-text-primary border-surface-divider hover:border-primary"
+                          }`}
+                        >
+                          {month.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <DatePicker
+                  selected={dateRange[0]}
+                  onChange={(dates) => {
+                    const [start, end] = dates as [Date | null, Date | null];
+                    setDateRange([start, end]);
+                    // Auto-save: don't close calendar automatically
+                  }}
+                  startDate={dateRange[0]}
+                  endDate={dateRange[1]}
+                  selectsRange
+                  monthsShown={2}
+                  minDate={minDate}
+                  maxDate={maxDate}
+                  inline
+                  calendarClassName="airbnb-calendar"
+                  className="airbnb-calendar-wrapper"
+                  shouldCloseOnSelect={false}
+                />
+              )}
             </div>
           )}
         </div>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={isFlexibleDates}
-            onChange={(e) => setIsFlexibleDates(e.target.checked)}
-            className="w-4 h-4 rounded border-surface-divider text-primary focus:ring-primary"
-          />
-          <span className="text-sm md:text-base text-text-primary">
-            I&apos;m flexible with dates
-          </span>
-        </label>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              const newFlexibleState = !isFlexibleDates;
+              setIsFlexibleDates(newFlexibleState);
+              if (newFlexibleState) {
+                setDateRange([null, null]);
+              } else {
+                setSelectedMonths([]);
+              }
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition ${
+              isFlexibleDates
+                ? "bg-primary/10 border-primary text-primary"
+                : "bg-white border-surface-divider text-text-primary hover:bg-surface-background"
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span className="text-sm md:text-base font-medium">
+              I&apos;m flexible
+            </span>
+          </button>
+          {isFlexibleDates && selectedMonths.length > 0 && (
+            <div className="flex items-center gap-2 text-sm text-text-secondary">
+              <span>{selectedMonths.length} month{selectedMonths.length !== 1 ? 's' : ''} selected</span>
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Trip Pace Section */}

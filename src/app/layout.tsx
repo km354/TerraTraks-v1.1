@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
+import ConditionalFooter from "@/components/layout/ConditionalFooter";
 import PageContainer from "@/components/layout/PageContainer";
 
 const inter = Inter({
@@ -28,7 +28,7 @@ export default function RootLayout({
         <main>
           <PageContainer>{children}</PageContainer>
         </main>
-        <Footer />
+        <ConditionalFooter />
       </body>
     </html>
   );

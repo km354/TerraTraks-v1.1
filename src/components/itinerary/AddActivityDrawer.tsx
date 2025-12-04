@@ -244,7 +244,7 @@ export default function AddActivityDrawer({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed top-0 right-0 h-screen w-[480px] bg-white border-l border-surface-divider shadow-card z-50 flex flex-col">
+    <div className="w-full h-full bg-white flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-surface-divider flex-shrink-0">
         <h2 className="text-lg md:text-xl font-semibold text-text-primary">

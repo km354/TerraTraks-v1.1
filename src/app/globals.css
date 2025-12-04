@@ -19,3 +19,318 @@
   }
 }
 
+/* Airbnb-style calendar styling */
+.airbnb-calendar-wrapper {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.12);
+  padding: 0;
+  border: none;
+}
+
+.airbnb-calendar {
+  font-family: inherit;
+  border: none !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.airbnb-calendar .react-datepicker__header {
+  background-color: white !important;
+  border-bottom: 1px solid #EBEBEB !important;
+  border-top-left-radius: 12px !important;
+  border-top-right-radius: 12px !important;
+  padding: 20px 20px 16px 20px !important;
+}
+
+.airbnb-calendar .react-datepicker__current-month {
+  font-weight: 600 !important;
+  font-size: 18px !important;
+  color: #222222 !important;
+  margin-bottom: 16px !important;
+  text-align: center !important;
+  padding: 0 40px !important;
+}
+
+.airbnb-calendar .react-datepicker__day-names {
+  display: flex !important;
+  justify-content: space-between !important;
+  margin-bottom: 8px !important;
+  padding: 0 8px !important;
+}
+
+.airbnb-calendar .react-datepicker__day-name {
+  color: #717171 !important;
+  font-weight: 500 !important;
+  font-size: 12px !important;
+  width: 40px !important;
+  line-height: 40px !important;
+  margin: 0 !important;
+  text-transform: uppercase !important;
+}
+
+.airbnb-calendar .react-datepicker__month {
+  margin: 0 !important;
+  padding: 8px 8px 16px 8px !important;
+}
+
+.airbnb-calendar .react-datepicker__week {
+  display: flex !important;
+  justify-content: space-between !important;
+  margin: 0 !important;
+}
+
+.airbnb-calendar .react-datepicker__day {
+  width: 40px !important;
+  height: 40px !important;
+  line-height: 40px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  font-size: 14px !important;
+  color: #222222 !important;
+  transition: all 0.15s ease !important;
+  font-weight: 400 !important;
+  position: relative !important;
+}
+
+.airbnb-calendar .react-datepicker__day:hover {
+  background-color: #F7F7F7 !important;
+  border-radius: 0 !important;
+  color: #222222 !important;
+}
+
+/* Ensure selected dates stay green on hover */
+.airbnb-calendar .react-datepicker__day--selected:hover,
+.airbnb-calendar .react-datepicker__day--in-range:hover,
+.airbnb-calendar .react-datepicker__day--in-selecting-range:hover,
+.airbnb-calendar .react-datepicker__day--range-start:hover,
+.airbnb-calendar .react-datepicker__day--range-end:hover {
+  background-color: #1D3B2A !important;
+  color: white !important;
+}
+
+.airbnb-calendar .react-datepicker__day--selected {
+  background-color: #1D3B2A !important;
+  color: white !important;
+  font-weight: 500 !important;
+  border-radius: 50% !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.airbnb-calendar .react-datepicker__day--in-selecting-range {
+  background-color: #1D3B2A !important;
+  color: white !important;
+  font-weight: 500 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.airbnb-calendar .react-datepicker__day--in-range {
+  background-color: #1D3B2A !important;
+  color: white !important;
+  font-weight: 500 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.airbnb-calendar .react-datepicker__day--range-start {
+  background-color: #1D3B2A !important;
+  color: white !important;
+  font-weight: 500 !important;
+  border-top-left-radius: 50% !important;
+  border-bottom-left-radius: 50% !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.airbnb-calendar .react-datepicker__day--range-end {
+  background-color: #1D3B2A !important;
+  color: white !important;
+  font-weight: 500 !important;
+  border-top-right-radius: 50% !important;
+  border-bottom-right-radius: 50% !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Make sure in-selecting-range always shows green, not grey */
+.airbnb-calendar .react-datepicker__day--in-selecting-range:not(.react-datepicker__day--in-range) {
+  background-color: #1D3B2A !important;
+  color: white !important;
+  font-weight: 500 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Connect days in range */
+.airbnb-calendar .react-datepicker__day--in-range:not(.react-datepicker__day--range-start):not(.react-datepicker__day--range-end) {
+  background-color: #1D3B2A !important;
+  color: white !important;
+  border-radius: 0 !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.airbnb-calendar .react-datepicker__day--disabled {
+  color: #DDD !important;
+  cursor: not-allowed !important;
+}
+
+.airbnb-calendar .react-datepicker__day--outside-month {
+  color: #DDD !important;
+  visibility: hidden !important;
+}
+
+.airbnb-calendar .react-datepicker__day--today {
+  font-weight: 500 !important;
+  color: #1D3B2A !important;
+  background-color: transparent !important;
+}
+
+/* Override default react-datepicker focus/active states - must be more specific */
+.airbnb-calendar .react-datepicker__day--keyboard-selected {
+  background-color: transparent !important;
+  color: #222222 !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.airbnb-calendar .react-datepicker__day--keyboard-selected.react-datepicker__day--selected,
+.airbnb-calendar .react-datepicker__day--keyboard-selected.react-datepicker__day--in-range,
+.airbnb-calendar .react-datepicker__day--keyboard-selected.react-datepicker__day--range-start,
+.airbnb-calendar .react-datepicker__day--keyboard-selected.react-datepicker__day--range-end {
+  background-color: #1D3B2A !important;
+  color: white !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.airbnb-calendar .react-datepicker__day--focus {
+  background-color: transparent !important;
+  color: #222222 !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.airbnb-calendar .react-datepicker__day--focus.react-datepicker__day--selected,
+.airbnb-calendar .react-datepicker__day--focus.react-datepicker__day--in-range,
+.airbnb-calendar .react-datepicker__day--focus.react-datepicker__day--range-start,
+.airbnb-calendar .react-datepicker__day--focus.react-datepicker__day--range-end {
+  background-color: #1D3B2A !important;
+  color: white !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.airbnb-calendar .react-datepicker__day:focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.airbnb-calendar .react-datepicker__day:focus:not(.react-datepicker__day--selected):not(.react-datepicker__day--in-range):not(.react-datepicker__day--range-start):not(.react-datepicker__day--range-end) {
+  background-color: #F7F7F7 !important;
+  border-radius: 0 !important;
+}
+
+/* Ensure hover doesn't show blue and only shows on non-selected dates */
+.airbnb-calendar .react-datepicker__day:hover:not(.react-datepicker__day--selected):not(.react-datepicker__day--in-range):not(.react-datepicker__day--in-selecting-range):not(.react-datepicker__day--range-start):not(.react-datepicker__day--range-end) {
+  background-color: #F7F7F7 !important;
+  color: #222222 !important;
+  border-radius: 0 !important;
+}
+
+.airbnb-calendar .react-datepicker__navigation {
+  top: 20px !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: white !important;
+  border: 1px solid #EBEBEB !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.airbnb-calendar .react-datepicker__navigation:hover {
+  background: #F7F7F7 !important;
+  border-color: #222222 !important;
+}
+
+.airbnb-calendar .react-datepicker__navigation-icon {
+  display: none !important;
+}
+
+.airbnb-calendar .react-datepicker__navigation-icon::before {
+  display: none !important;
+}
+
+.airbnb-calendar .react-datepicker__navigation--previous {
+  left: 8px !important;
+}
+
+.airbnb-calendar .react-datepicker__navigation--previous::after {
+  content: "" !important;
+  display: block !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-style: solid !important;
+  border-width: 5px 6px 5px 0 !important;
+  border-color: transparent #222222 transparent transparent !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.airbnb-calendar .react-datepicker__navigation--previous:hover::after {
+  border-color: transparent #1D3B2A transparent transparent !important;
+}
+
+.airbnb-calendar .react-datepicker__navigation--next {
+  right: 8px !important;
+}
+
+.airbnb-calendar .react-datepicker__navigation--next::after {
+  content: "" !important;
+  display: block !important;
+  width: 0 !important;
+  height: 0 !important;
+  border-style: solid !important;
+  border-width: 5px 0 5px 6px !important;
+  border-color: transparent transparent transparent #222222 !important;
+  position: absolute !important;
+  left: 50% !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.airbnb-calendar .react-datepicker__navigation--next:hover::after {
+  border-color: transparent transparent transparent #1D3B2A !important;
+}
+
+/* Remove duplicate month headers when showing 2 months */
+.airbnb-calendar .react-datepicker__month-container:first-child .react-datepicker__header {
+  border-top-right-radius: 0 !important;
+}
+
+.airbnb-calendar .react-datepicker__month-container:last-child .react-datepicker__header {
+  border-top-left-radius: 0 !important;
+  border-left: 1px solid #EBEBEB !important;
+}

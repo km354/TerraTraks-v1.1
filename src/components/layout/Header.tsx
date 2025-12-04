@@ -19,15 +19,15 @@ export default function Header() {
   };
 
   return (
-    <header className="border-b border-surface-divider bg-white">
-      <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
-        {/* Logo */}
-        <Link href="/" className="text-lg md:text-xl font-semibold text-text-primary">
+    <header className="sticky top-0 z-50 border-b border-surface-divider bg-white">
+      <div className="w-full flex items-center gap-4 py-4 md:py-5">
+        {/* Logo - far left */}
+        <Link href="/" className="text-lg md:text-xl font-semibold text-text-primary pl-4 md:pl-6 flex-shrink-0">
           🌲 TerraTraks
         </Link>
 
-        {/* Navigation */}
-        <nav className="flex items-center gap-2">
+        {/* Navigation - centered/far right */}
+        <nav className="flex items-center gap-2 ml-auto pr-4 md:pr-6">
           <Link
             href="/trips"
             className="text-sm md:text-base text-text-primary hover:bg-surface-divider px-3 py-1.5 rounded-full font-medium"

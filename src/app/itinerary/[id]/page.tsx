@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import AddActivityDrawer, {
   Activity,
 } from "@/components/itinerary/AddActivityDrawer";
@@ -102,6 +102,7 @@ function SortableParkItem({ park, index, onRemove }: SortableParkItemProps) {
 
 function ItineraryContent() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const itineraryId = params.id as string;
   const [activeSection, setActiveSection] = useState("overview");
   const [searchTerm, setSearchTerm] = useState("");
@@ -110,6 +111,29 @@ function ItineraryContent() {
     "Yellowstone National Park",
     "Grand Teton National Park",
   ]);
+
+  // Prevent body scrolling on itinerary page
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, []);
+
+  // Calculate number of days from date range
+  const numberOfDays = useMemo(() => {
+    const startDateStr = searchParams.get("startDate");
+    const endDateStr = searchParams.get("endDate");
+    
+    if (startDateStr && endDateStr) {
+      const startDate = new Date(startDateStr);
+      const endDate = new Date(endDateStr);
+      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end days
+      return diffDays;
+    }
+    return 3; // Default to 3 days if no dates provided
+  }, [searchParams]);
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -161,34 +185,23 @@ function ItineraryContent() {
       day: 2,
       park: "Yellowstone National Park",
     },
-    {
-      id: "5",
-      name: "Jenny Lake",
-      type: "hike",
-      day: 3,
-      park: "Grand Teton National Park",
-      linkUrl: "https://www.nps.gov/grte/planyourvisit/jennylake.htm",
-    },
-    {
-      id: "6",
-      name: "Teton Range Viewpoint",
-      type: "viewpoint",
-      day: 3,
-      park: "Grand Teton National Park",
-    },
   ]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedDayForActivities, setSelectedDayForActivities] = useState<number | null>(null);
 
   const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
 
-  // Get unique days from activities
+  // Get unique days from activities - use numberOfDays if no activities
   const availableDays = useMemo(() => {
-    const days = Array.from(new Set(activities.map((a) => a.day))).sort(
+    const daysFromActivities = Array.from(new Set(activities.map((a) => a.day))).sort(
       (a, b) => a - b
     );
-    return days;
-  }, [activities]);
+    // If we have a calculated numberOfDays but no activities for all days, include all days
+    if (daysFromActivities.length === 0 || daysFromActivities.length < numberOfDays) {
+      return Array.from({ length: numberOfDays }, (_, i) => i + 1);
+    }
+    return daysFromActivities;
+  }, [activities, numberOfDays]);
 
   // Filter activities based on search and selected day
   const filteredActivities = useMemo(() => {
@@ -236,6 +249,7 @@ function ItineraryContent() {
   // IntersectionObserver for scrollspy
   useEffect(() => {
     const observers: IntersectionObserver[] = [];
+    const scrollContainer = document.querySelector('[data-scroll-container]') || document;
 
     SIDEBAR_ITEMS.forEach((item) => {
       const section = sectionRefs.current[item.sectionId];
@@ -244,14 +258,14 @@ function ItineraryContent() {
       const observer = new IntersectionObserver(
         (entries) => {
           entries.forEach((entry) => {
-            if (entry.isIntersecting && entry.intersectionRatio > 0.5) {
+            if (entry.isIntersecting) {
               setActiveSection(item.id);
             }
           });
         },
         {
-          threshold: 0.5,
-          rootMargin: "-100px 0px -50% 0px",
+          threshold: [0, 0.1, 0.5, 1],
+          rootMargin: "-80px 0px -60% 0px",
         }
       );
 
@@ -414,52 +428,54 @@ function ItineraryContent() {
   };
 
   return (
-    <div className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] flex flex-col md:flex-row gap-0 h-screen overflow-hidden">
+    <div className="fixed inset-0 top-[5rem] flex flex-col md:flex-row gap-0 overflow-hidden">
       {/* Sidebar */}
-      <aside className="w-full md:w-64 flex-shrink-0 border-r border-surface-divider bg-white h-full overflow-y-auto">
-        <div className="md:sticky md:top-24 space-y-2 text-sm md:text-base flex flex-col h-full p-4">
+      <aside className="w-full md:w-[173px] flex-shrink-0 border-r border-surface-divider bg-white h-full overflow-hidden flex flex-col">
+        {/* Scrollable sidebar items */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
           {SIDEBAR_ITEMS.map((item) => (
             <button
               key={item.id}
               onClick={() => handleSidebarClick(item.sectionId)}
-              className={`px-3 py-2 rounded-lg cursor-pointer flex items-center justify-between text-left ${
+              className={`px-2 py-2 rounded-lg cursor-pointer flex items-center text-left whitespace-nowrap w-full ${
                 activeSection === item.id
                   ? "bg-surface-background text-text-primary font-semibold border border-black/10"
                   : "text-text-secondary hover:bg-surface-background"
               }`}
             >
-              <span>{item.label}</span>
+              <span className="text-base">{item.label}</span>
             </button>
           ))}
+        </div>
 
-          <div className="mt-auto space-y-2 pt-4 border-t border-surface-divider">
-            {BOTTOM_ITEMS.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  if (item.href !== "#") {
-                    window.location.href = item.href;
-                  } else {
-                    // Handle logout
-                    console.log("Logout clicked");
-                  }
-                }}
-                className="px-3 py-2 rounded-lg cursor-pointer flex items-center justify-between text-left text-text-secondary hover:bg-surface-background w-full"
-              >
-                <span>{item.label}</span>
-              </button>
-            ))}
-          </div>
+        {/* Fixed bottom items */}
+        <div className="flex-shrink-0 p-3 space-y-2 pt-4 border-t border-surface-divider">
+          {BOTTOM_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => {
+                if (item.href !== "#") {
+                  window.location.href = item.href;
+                } else {
+                  // Handle logout
+                  console.log("Logout clicked");
+                }
+              }}
+              className="px-2 py-2 rounded-lg cursor-pointer flex items-center text-left text-text-secondary hover:bg-surface-background w-full whitespace-nowrap"
+            >
+              <span className="text-base">{item.label}</span>
+            </button>
+          ))}
         </div>
       </aside>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col lg:flex-row gap-0 h-full overflow-hidden">
         {/* Itinerary Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto h-full">
-          <div className="max-w-2xl mx-auto p-6 space-y-8">
+        <div className="w-full lg:w-[515px] flex-shrink-0 overflow-y-auto h-full border-r border-surface-divider" data-scroll-container>
+          <div className="p-4 space-y-6">
             {/* Sticky Search Bar */}
-            <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-surface-divider py-3 mb-4 -mx-6 px-6">
+            <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-surface-divider py-3 mb-4 -mx-4 px-4">
           <div className="flex gap-3 items-center">
             <input
               type="text"
@@ -562,7 +578,7 @@ function ItineraryContent() {
           </DndContext>
           <button
             onClick={handleAddPark}
-            className="w-full mt-4 px-4 py-2 rounded-lg border border-surface-divider bg-white hover:bg-surface-background text-sm md:text-base text-text-primary font-medium transition"
+            className="w-full mt-4 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-dark text-sm md:text-base font-medium transition"
           >
             Add another park
           </button>
@@ -580,8 +596,7 @@ function ItineraryContent() {
             Itinerary
           </h2>
           <div className="space-y-4">
-            {filteredDays.length > 0 ? (
-              filteredDays.map((day) => {
+            {Array.from({ length: numberOfDays }, (_, i) => i + 1).map((day) => {
                 const dayActivities = activitiesByDay[day] || [];
                 return (
                   <div
@@ -649,22 +664,13 @@ function ItineraryContent() {
                     )}
                     <button
                       onClick={() => handleOpenDrawer(day)}
-                      className="mt-2 px-4 py-2 rounded-lg border border-surface-divider bg-white hover:bg-surface-background text-sm md:text-base text-text-primary font-medium transition"
+                      className="mt-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-dark text-sm md:text-base font-medium transition"
                     >
                       Add activity
                     </button>
                   </div>
                 );
-              })
-            ) : (
-              <div className="bg-white rounded-xl border border-surface-divider p-6">
-                <p className="text-sm md:text-base text-text-secondary">
-                  {searchTerm
-                    ? "No activities match your search."
-                    : "No activities added yet."}
-                </p>
-              </div>
-            )}
+              })}
           </div>
         </section>
 
@@ -688,8 +694,20 @@ function ItineraryContent() {
           </div>
         </div>
 
-        {/* Map Panel - Fixed full height */}
-        <div className="hidden lg:flex w-[45%] xl:w-[50%] flex-shrink-0 border-l border-surface-divider h-full overflow-hidden">
+        {/* Add Activity Drawer - Part of layout, not fixed */}
+        <div className={`hidden lg:flex flex-shrink-0 border-r border-surface-divider h-full transition-all duration-300 ease-in-out ${
+          isDrawerOpen ? 'w-[442px]' : 'w-0 overflow-hidden'
+        }`}>
+          <AddActivityDrawer
+            isOpen={isDrawerOpen}
+            selectedDay={selectedDayForActivities}
+            onClose={handleCloseDrawer}
+            onAddActivity={handleAddActivity}
+          />
+        </div>
+
+        {/* Map Panel - Adjusts width based on drawer state */}
+        <div className="hidden lg:flex flex-1 flex-shrink-0 h-full overflow-hidden transition-all duration-300 ease-in-out">
           <MapPanel
             parks={parkMarkers}
             activities={activityMarkers}
@@ -699,22 +717,18 @@ function ItineraryContent() {
           />
         </div>
       </div>
-
-      {/* Add Activity Drawer */}
-      <AddActivityDrawer
-        isOpen={isDrawerOpen}
-        selectedDay={selectedDayForActivities}
-        onClose={handleCloseDrawer}
-        onAddActivity={handleAddActivity}
-      />
     </div>
   );
+}
+
+function ItineraryPageContent() {
+  return <ItineraryContent />;
 }
 
 export default function ItineraryPage() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
-      <ItineraryContent />
+      <ItineraryPageContent />
     </Suspense>
   );
 }

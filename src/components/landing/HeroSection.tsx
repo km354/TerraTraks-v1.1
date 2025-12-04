@@ -57,20 +57,20 @@ function SortableParkItem({ park, index, onRemove }: SortableParkItemProps) {
     <div
       ref={setNodeRef}
       style={style}
-      className="inline-flex items-center gap-2 rounded-full bg-white/95 backdrop-blur-sm px-4 py-2 text-sm md:text-base cursor-move shadow-md"
+      className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1.5 text-sm md:text-base cursor-move"
     >
       <span
         {...attributes}
         {...listeners}
-        className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs text-white font-semibold cursor-grab active:cursor-grabbing"
+        className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-xs text-white font-semibold cursor-grab active:cursor-grabbing"
       >
         {index + 1}
       </span>
-      <span className="text-text-primary">{park}</span>
+      <span className="text-text-primary text-sm">{park}</span>
       <button
         type="button"
         onClick={onRemove}
-        className="text-text-secondary hover:text-gray-900 ml-1"
+        className="text-text-secondary hover:text-gray-900 ml-1 text-lg leading-none"
         aria-label={`Remove ${park}`}
       >
         ×
@@ -146,7 +146,7 @@ export default function HeroSection() {
   };
 
   return (
-    <section id="hero-input" className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] min-h-[600px] md:min-h-[700px] flex items-center">
+    <section id="hero-input" className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] min-h-[400px] md:min-h-[450px] flex items-start -mt-8 md:-mt-12 pt-12 md:pt-14">
       {/* Full-width background image */}
       <div className="absolute inset-0 -z-0">
         <Image
@@ -162,11 +162,11 @@ export default function HeroSection() {
       </div>
 
       {/* Content overlaid on image */}
-      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 py-12 md:py-20">
-        <div className="flex flex-col items-center space-y-8 md:space-y-12">
+      <div className="relative z-10 w-full max-w-6xl mx-auto px-4 md:px-6 pt-4 md:pt-6">
+        <div className="flex flex-col items-center space-y-6 md:space-y-8">
           {/* Large centered headline */}
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white drop-shadow-lg">
+          <div className="text-center w-full">
+            <h1 className="text-4xl md:text-6xl lg:text-6xl xl:text-6xl font-bold tracking-tight text-white drop-shadow-lg">
               Your Personal Planner for National Parks
             </h1>
             <p className="mt-4 text-lg md:text-xl text-white/95 drop-shadow-md">
@@ -177,50 +177,89 @@ export default function HeroSection() {
           {/* Prominent search bar - homes.com style */}
           <div className="w-full max-w-4xl relative">
             <div className="bg-white rounded-2xl shadow-2xl p-2 md:p-3">
-              <div className="flex items-center">
-                <input
-                  id="park-search"
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onFocus={handleInputClick}
-                  onClick={handleInputClick}
-                  onBlur={() => {
-                    // Delay to allow click events on suggestions
-                    setTimeout(() => {
-                      setIsInputFocused(false);
-                      setShowAllOptions(false);
-                    }, 200);
-                  }}
+              <div className="flex flex-col gap-2">
+                {/* Selected parks inside the box */}
+                {selectedParks.length > 0 && (
+                  <div className="px-2">
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                    >
+                      <SortableContext items={selectedParks}>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedParks.map((park, index) => (
+                            <SortableParkItem
+                              key={park}
+                              park={park}
+                              index={index}
+                              onRemove={() => handleRemovePark(index)}
+                            />
+                          ))}
+                        </div>
+                      </SortableContext>
+                    </DndContext>
+                  </div>
+                )}
+                
+                {/* Input and button row */}
+                <div className="flex items-center">
+                  <input
+                    id="park-search"
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onFocus={handleInputClick}
+                    onClick={handleInputClick}
+                    onBlur={() => {
+                      // Delay to allow click events on suggestions
+                      setTimeout(() => {
+                        setIsInputFocused(false);
+                        setShowAllOptions(false);
+                      }, 200);
+                    }}
                   placeholder="Search for national parks..."
-                  className="flex-1 rounded-xl border-0 px-4 md:px-6 py-3 md:py-4 text-base md:text-lg focus:outline-none"
+                  className="flex-1 rounded-xl border-0 px-4 md:px-6 py-[8px] md:py-[12px] text-base md:text-lg focus:outline-none"
                 />
                 <button
                   type="button"
-                  onClick={handleInputClick}
-                  className="ml-2 rounded-xl bg-primary text-white px-6 md:px-8 py-3 md:py-4 font-semibold hover:bg-primary-dark transition flex items-center gap-2"
+                  onClick={handleStartPlanning}
+                  disabled={selectedParks.length === 0}
+                  className="ml-2 rounded-xl bg-primary text-white px-6 md:px-8 py-[8px] md:py-[12px] font-semibold hover:bg-primary-dark transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <span>Search</span>
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                </button>
+                    <span>Start Planning</span>
+                  </button>
+                </div>
               </div>
             </div>
 
             {/* Show options only when input is focused/clicked */}
             {isInputFocused && options.length > 0 && (
-              <div className="absolute top-full mt-2 w-full rounded-xl border border-surface-divider bg-white shadow-xl overflow-hidden z-20 max-h-64 overflow-y-auto">
+              <div 
+                className="absolute top-full w-full rounded-xl border border-surface-divider bg-white shadow-xl overflow-hidden z-20 max-h-64 overflow-y-auto"
+                style={{ overscrollBehavior: 'contain' }}
+                onWheel={(e) => {
+                  const element = e.currentTarget;
+                  const { scrollTop, scrollHeight, clientHeight } = element;
+                  const isAtTop = scrollTop === 0;
+                  const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+                  
+                  // Prevent page scroll when at boundaries
+                  if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
+                    e.stopPropagation();
+                  }
+                }}
+                onTouchMove={(e) => {
+                  const element = e.currentTarget;
+                  const { scrollTop, scrollHeight, clientHeight } = element;
+                  const isAtTop = scrollTop === 0;
+                  const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+                  
+                  if (isAtTop || isAtBottom) {
+                    e.stopPropagation();
+                  }
+                }}
+              >
                 {options.map((park) => (
                   <button
                     key={park}
@@ -232,41 +271,6 @@ export default function HeroSection() {
                     {park}
                   </button>
                 ))}
-              </div>
-            )}
-
-            {/* Selected parks display with drag and drop */}
-            {selectedParks.length > 0 && (
-              <div className="mt-4">
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  <SortableContext items={selectedParks}>
-                    <div className="flex flex-wrap gap-2 justify-center">
-                      {selectedParks.map((park, index) => (
-                        <SortableParkItem
-                          key={park}
-                          park={park}
-                          index={index}
-                          onRemove={() => handleRemovePark(index)}
-                        />
-                      ))}
-                    </div>
-                  </SortableContext>
-                </DndContext>
-
-                {/* Start Planning Button */}
-                <div className="mt-6 flex justify-center">
-                  <button
-                    type="button"
-                    onClick={handleStartPlanning}
-                    className="rounded-xl bg-primary text-white px-8 md:px-12 py-3 md:py-4 text-base md:text-lg font-semibold hover:bg-primary-dark transition shadow-lg"
-                  >
-                    Start Planning
-                  </button>
-                </div>
               </div>
             )}
           </div>
