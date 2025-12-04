@@ -2,7 +2,7 @@ export default function PrivacyPage() {
   return (
     <>
       <h1 className="text-3xl md:text-4xl font-semibold mb-4">Privacy Policy</h1>
-      <p>Effective Date: [Insert Date]
+      <p>Effective Date: December 4, 2025
 
 TerraTraks (“we”, “our”, “us”) values user privacy. This policy outlines how we collect, use, store, and protect data.
 
