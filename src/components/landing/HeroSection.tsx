@@ -174,7 +174,7 @@ export default function HeroSection() {
             </p>
           </div>
 
-          {/* Prominent search bar - homes.com style */}
+          {/* Prominent search bar */}
           <div className="w-full max-w-4xl relative">
             <div className="bg-white rounded-2xl shadow-2xl p-2 md:p-3">
               <div className="flex flex-col gap-2">
