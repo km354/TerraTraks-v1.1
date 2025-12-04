@@ -577,8 +577,7 @@ function FiltersContent() {
               type="number"
               value={maxMilesPerDay}
               onChange={(e) => setMaxMilesPerDay(e.target.value)}
-              placeholder="e.g., 300"
-              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary"
+              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
             />
           </div>
           <div>
@@ -589,8 +588,7 @@ function FiltersContent() {
               type="number"
               value={maxHoursHiking}
               onChange={(e) => setMaxHoursHiking(e.target.value)}
-              placeholder="e.g., 6"
-              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary"
+              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
             />
           </div>
           <div>

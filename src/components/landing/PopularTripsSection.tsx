@@ -35,7 +35,7 @@ export default function PopularTripsSection() {
   };
 
   return (
-    <section className="bg-white py-12 md:py-16 space-y-4 md:space-y-6">
+    <section className="bg-white pt-0 pb-12 md:pb-16 space-y-4 md:space-y-6">
       <div className="max-w-6xl mx-auto space-y-4 md:space-y-6">
         <h2 className="text-3xl md:text-4xl font-semibold text-primary">
           Or start with a popular trip

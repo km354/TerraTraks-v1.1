@@ -29,7 +29,6 @@ import { CSS } from "@dnd-kit/utilities";
 const SIDEBAR_ITEMS = [
   { id: "overview", label: "Trip Overview", sectionId: "section-overview" },
   { id: "parks", label: "Parks", sectionId: "section-parks" },
-  { id: "itinerary", label: "Itinerary", sectionId: "section-itinerary" },
   { id: "alerts", label: "Alerts & Permits", sectionId: "section-alerts" },
 ];
 
@@ -105,6 +104,7 @@ function ItineraryContent() {
   const searchParams = useSearchParams();
   const itineraryId = params.id as string;
   const [activeSection, setActiveSection] = useState("overview");
+  const isScrollingRef = useRef(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDay, setSelectedDay] = useState("all");
   const [parks, setParks] = useState([
@@ -249,23 +249,35 @@ function ItineraryContent() {
   // IntersectionObserver for scrollspy
   useEffect(() => {
     const observers: IntersectionObserver[] = [];
-    const scrollContainer = document.querySelector('[data-scroll-container]') || document;
+    const scrollContainer = document.querySelector('[data-scroll-container]') as HTMLElement;
+    
+    if (!scrollContainer) return;
 
-    SIDEBAR_ITEMS.forEach((item) => {
-      const section = sectionRefs.current[item.sectionId];
+    // Observe all sections (overview, parks, itinerary, alerts, and days)
+    const allSections = [
+      ...SIDEBAR_ITEMS.map(item => ({ id: item.id, sectionId: item.sectionId })),
+      ...availableDays.map(day => ({ id: `day-${day}`, sectionId: `day-${day}` }))
+    ];
+
+    allSections.forEach(({ id, sectionId }) => {
+      const section = document.getElementById(sectionId);
       if (!section) return;
 
       const observer = new IntersectionObserver(
         (entries) => {
+          // Don't update active section while programmatically scrolling
+          if (isScrollingRef.current) return;
+
           entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              setActiveSection(item.id);
+            if (entry.isIntersecting && entry.intersectionRatio > 0.2) {
+              setActiveSection(id);
             }
           });
         },
         {
-          threshold: [0, 0.1, 0.5, 1],
-          rootMargin: "-80px 0px -60% 0px",
+          root: scrollContainer,
+          threshold: [0, 0.1, 0.2, 0.3, 0.5, 0.7, 1],
+          rootMargin: "-120px 0px -60% 0px",
         }
       );
 
@@ -276,12 +288,43 @@ function ItineraryContent() {
     return () => {
       observers.forEach((observer) => observer.disconnect());
     };
-  }, []);
+  }, [availableDays]);
 
   const handleSidebarClick = (sectionId: string) => {
+    const scrollContainer = document.querySelector('[data-scroll-container]') as HTMLElement;
     const section = document.getElementById(sectionId);
-    if (section) {
-      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (section && scrollContainer) {
+      // Convert sectionId to active section id
+      const sectionIdToActiveId = (id: string) => {
+        if (id.startsWith('day-')) {
+          return id;
+        }
+        const item = SIDEBAR_ITEMS.find(item => item.sectionId === id);
+        return item ? item.id : id;
+      };
+      
+      // Immediately update active section for responsive UI
+      const activeId = sectionIdToActiveId(sectionId);
+      setActiveSection(activeId);
+      
+      // Set scrolling flag to prevent intersection observer from interfering
+      isScrollingRef.current = true;
+      
+      // Calculate scroll position relative to container
+      const containerTop = scrollContainer.getBoundingClientRect().top;
+      const sectionTop = section.getBoundingClientRect().top;
+      const currentScroll = scrollContainer.scrollTop;
+      const targetScroll = currentScroll + (sectionTop - containerTop) - 100; // 100px offset for sticky header
+      
+      scrollContainer.scrollTo({
+        top: Math.max(0, targetScroll),
+        behavior: "smooth"
+      });
+      
+      // Re-enable intersection observer after scroll animation completes
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 800);
     }
   };
 
@@ -433,7 +476,7 @@ function ItineraryContent() {
       <aside className="w-full md:w-[173px] flex-shrink-0 border-r border-surface-divider bg-white h-full overflow-hidden flex flex-col">
         {/* Scrollable sidebar items */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
-          {SIDEBAR_ITEMS.map((item) => (
+          {SIDEBAR_ITEMS.filter(item => item.id !== "alerts").map((item) => (
             <button
               key={item.id}
               onClick={() => handleSidebarClick(item.sectionId)}
@@ -446,6 +489,40 @@ function ItineraryContent() {
               <span className="text-base">{item.label}</span>
             </button>
           ))}
+          
+          {/* Alerts & Permits - between Parks and Days */}
+          {SIDEBAR_ITEMS.filter(item => item.id === "alerts").map((item) => (
+            <button
+              key={item.id}
+              onClick={() => handleSidebarClick(item.sectionId)}
+              className={`px-2 py-2 rounded-lg cursor-pointer flex items-center text-left whitespace-nowrap w-full ${
+                activeSection === item.id
+                  ? "bg-surface-background text-text-primary font-semibold border border-black/10"
+                  : "text-text-secondary hover:bg-surface-background"
+              }`}
+            >
+              <span className="text-base">{item.label}</span>
+            </button>
+          ))}
+          
+          {/* Day navigation */}
+          {availableDays.length > 0 && (
+            <>
+              {availableDays.map((day) => (
+                <button
+                  key={`day-${day}`}
+                  onClick={() => handleSidebarClick(`day-${day}`)}
+                  className={`px-2 py-2 rounded-lg cursor-pointer flex items-center text-left whitespace-nowrap w-full ${
+                    activeSection === `day-${day}`
+                      ? "bg-surface-background text-text-primary font-semibold border border-black/10"
+                      : "text-text-secondary hover:bg-surface-background"
+                  }`}
+                >
+                  <span className="text-base">Day {day}</span>
+                </button>
+              ))}
+            </>
+          )}
         </div>
 
         {/* Fixed bottom items */}
@@ -473,7 +550,7 @@ function ItineraryContent() {
       <div className="flex-1 flex flex-col lg:flex-row gap-0 h-full overflow-hidden">
         {/* Itinerary Content - Scrollable */}
         <div className="w-full lg:w-[515px] flex-shrink-0 overflow-y-auto h-full border-r border-surface-divider" data-scroll-container>
-          <div className="p-4 space-y-6">
+          <div className="p-4">
             {/* Sticky Search Bar */}
             <div className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-surface-divider py-3 mb-4 -mx-4 px-4">
           <div className="flex gap-3 items-center">
@@ -484,19 +561,26 @@ function ItineraryContent() {
               placeholder="Search activities, viewpoints, hikes, and POIs"
               className="flex-1 rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-black/20"
             />
-            <select
-              value={selectedDay}
-              onChange={(e) => setSelectedDay(e.target.value)}
-              className="rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-black/20 bg-white"
-              style={{ maxHeight: "120px" }}
-            >
-              <option value="all">All days</option>
-              {availableDays.map((day) => (
-                <option key={day} value={day.toString()}>
-                  Day {day}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={selectedDay}
+                onChange={(e) => setSelectedDay(e.target.value)}
+                className="appearance-none rounded-lg border border-surface-divider px-3 py-2 pr-8 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white cursor-pointer"
+                style={{ maxHeight: "120px" }}
+              >
+                <option value="all">All days</option>
+                {availableDays.map((day) => (
+                  <option key={day} value={day.toString()}>
+                    Day {day}
+                  </option>
+                ))}
+              </select>
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg className="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -553,7 +637,7 @@ function ItineraryContent() {
           ref={(el) => {
             sectionRefs.current["section-parks"] = el;
           }}
-          className="space-y-4"
+          className="space-y-4 mt-12"
         >
           <h2 className="text-2xl md:text-3xl font-semibold text-text-primary">
             Parks
@@ -584,13 +668,31 @@ function ItineraryContent() {
           </button>
         </section>
 
+        {/* Alerts & Permits Section */}
+        <section
+          id="section-alerts"
+          ref={(el) => {
+            sectionRefs.current["section-alerts"] = el;
+          }}
+          className="space-y-4 mt-12"
+        >
+          <h2 className="text-2xl md:text-3xl font-semibold text-text-primary">
+            Alerts & Permits
+          </h2>
+          <div className="bg-white rounded-xl border border-surface-divider p-6">
+            <p className="text-sm md:text-base text-text-secondary">
+              Any closures, alerts, shuttle requirements, or permits will appear here.
+            </p>
+          </div>
+        </section>
+
         {/* Itinerary Section */}
         <section
           id="section-itinerary"
           ref={(el) => {
             sectionRefs.current["section-itinerary"] = el;
           }}
-          className="space-y-4"
+          className="space-y-4 mt-12"
         >
           <h2 className="text-2xl md:text-3xl font-semibold text-text-primary">
             Itinerary
@@ -671,24 +773,6 @@ function ItineraryContent() {
                   </div>
                 );
               })}
-          </div>
-        </section>
-
-        {/* Alerts & Permits Section */}
-        <section
-          id="section-alerts"
-          ref={(el) => {
-            sectionRefs.current["section-alerts"] = el;
-          }}
-          className="space-y-4"
-        >
-          <h2 className="text-2xl md:text-3xl font-semibold text-text-primary">
-            Alerts & Permits
-          </h2>
-          <div className="bg-white rounded-xl border border-surface-divider p-6">
-            <p className="text-sm md:text-base text-text-secondary">
-              Any closures, alerts, shuttle requirements, or permits will appear here.
-            </p>
           </div>
         </section>
           </div>
