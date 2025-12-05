@@ -5,6 +5,67 @@ import mapboxgl from "mapbox-gl";
 import type { Map, Marker } from "mapbox-gl";
 import { calculateRouteBetweenParks } from "@/lib/services/mapboxDirections";
 
+// SVG icon for national park markers
+const createParkMarkerIcon = (isSelected: boolean, day?: number): string => {
+  const size = isSelected ? 32 : 28;
+  const viewBoxSize = 32;
+  
+  return `
+    <svg width="${size}" height="${size}" viewBox="0 0 ${viewBoxSize} ${viewBoxSize}" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer; display: block;">
+      <!-- Outer pin -->
+      <path
+        d="M16 2.5C11.3 2.5 7.5 6.3 7.5 11C7.5 15.2 10.1 19.9 13.4 23.6C14.3 24.6 15.1 25.4 15.5 25.8C15.7 26 15.9 26.1 16.1 26.1C16.3 26.1 16.5 26 16.7 25.8C17.1 25.4 17.9 24.6 18.8 23.6C22.1 19.9 24.7 15.2 24.7 11C24.5 6.3 20.7 2.5 16 2.5Z"
+        fill="#1F7A4D"
+      />
+      <!-- Inner circle background -->
+      <circle
+        cx="16"
+        cy="11.2"
+        r="6.4"
+        fill="#FFFFFF"
+      />
+      <!-- Tree trunk -->
+      <rect
+        x="15.25"
+        y="11.6"
+        width="1.5"
+        height="4.2"
+        rx="0.6"
+        fill="#5B4636"
+      />
+      <!-- Tree canopy (stylized evergreen) -->
+      <!-- Top triangle -->
+      <path
+        d="M16 5.8L13.6 9.0H18.4L16 5.8Z"
+        fill="#2F8F5F"
+      />
+      <!-- Middle triangle -->
+      <path
+        d="M16 7.8L12.8 11.4H19.2L16 7.8Z"
+        fill="#2F8F5F"
+      />
+      <!-- Bottom triangle -->
+      <path
+        d="M16 9.8L12.2 13.9H19.8L16 9.8Z"
+        fill="#2F8F5F"
+      />
+      <!-- Small base shadow for stability -->
+      <ellipse
+        cx="16"
+        cy="27.2"
+        rx="4.4"
+        ry="1.4"
+        fill="rgba(0,0,0,0.12)"
+      />
+      ${day ? `
+      <!-- Day badge -->
+      <circle cx="24" cy="8" r="7" fill="#1D3B2A" stroke="white" stroke-width="1.5"/>
+      <text x="24" y="11.5" text-anchor="middle" fill="white" font-size="9" font-weight="bold" font-family="Arial, sans-serif">${day}</text>
+      ` : ''}
+    </svg>
+  `;
+};
+
 export interface ParkMarker {
   id: string;
   name: string;
@@ -161,23 +222,22 @@ export default function MapPanel({
         ? park.day === selectedDay
         : true;
 
-      // Create custom marker element
+      // Create custom marker element with SVG icon
       const el = document.createElement("div");
       el.className = "park-marker";
-      el.style.width = isSelected ? "24px" : "18px";
-      el.style.height = isSelected ? "24px" : "18px";
-      el.style.borderRadius = "50%";
-      el.style.backgroundColor = isSelected && isHighlighted ? "#1D3B2A" : "#9CA3AF";
-      el.style.border = "2px solid white";
-      el.style.boxShadow = "0 2px 4px rgba(0,0,0,0.3)";
+      el.style.width = isSelected ? "32px" : "28px";
+      el.style.height = isSelected ? "32px" : "28px";
       el.style.cursor = "pointer";
-      el.style.display = "flex";
-      el.style.alignItems = "center";
-      el.style.justifyContent = "center";
-      el.style.fontSize = "12px";
+      el.style.position = "relative";
       el.title = park.name + (park.day ? ` - Day ${park.day}` : "");
+      
+      // Insert SVG icon
+      el.innerHTML = createParkMarkerIcon(isSelected && isHighlighted, isSelected && park.day ? park.day : undefined);
 
-      const marker = new mapboxgl.Marker(el)
+      const marker = new mapboxgl.Marker({
+        element: el,
+        anchor: "bottom",
+      })
         .setLngLat([park.lng, park.lat])
         .addTo(map);
 
@@ -188,28 +248,6 @@ export default function MapPanel({
       });
 
       markersRef.current.push(marker);
-
-      // Add day badge if selected
-      if (isSelected && park.day) {
-        const badge = document.createElement("div");
-        badge.textContent = park.day.toString();
-        badge.style.position = "absolute";
-        badge.style.top = "-8px";
-        badge.style.right = "-8px";
-        badge.style.width = "20px";
-        badge.style.height = "20px";
-        badge.style.borderRadius = "50%";
-        badge.style.backgroundColor = "#1D3B2A";
-        badge.style.color = "white";
-        badge.style.fontSize = "10px";
-        badge.style.fontWeight = "bold";
-        badge.style.display = "flex";
-        badge.style.alignItems = "center";
-        badge.style.justifyContent = "center";
-        badge.style.border = "2px solid white";
-        badge.style.boxShadow = "0 2px 4px rgba(0,0,0,0.3)";
-        el.appendChild(badge);
-      }
     });
 
     // Add activity markers

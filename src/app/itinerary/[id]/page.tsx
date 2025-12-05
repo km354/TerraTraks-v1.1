@@ -9,6 +9,8 @@ import MapPanel, {
   ParkMarker,
   ActivityMarker,
 } from "@/components/itinerary/MapPanel";
+import { getPrimaryEntrance, getParkCodeFromName } from "@/lib/services/nationalParks";
+import type { NationalPark } from "@/lib/types/nationalParks";
 import {
   DndContext,
   closestCenter,
@@ -143,6 +145,7 @@ function ItineraryContent() {
   const [kids, setKids] = useState(0);
   const [showGuestSelector, setShowGuestSelector] = useState(false);
   const guestSelectorRef = useRef<HTMLDivElement>(null);
+  const [parkCoordinates, setParkCoordinates] = useState<Record<string, { lat: number; lng: number }>>({});
 
   // Prevent body scrolling on itinerary page
   useEffect(() => {
@@ -491,22 +494,42 @@ function ItineraryContent() {
     return dayActivity?.park || parks[0] || "Unknown Park";
   };
 
+  // Fetch park coordinates from Supabase
+  useEffect(() => {
+    const fetchParkCoordinates = async () => {
+      const coordinates: Record<string, { lat: number; lng: number }> = {};
+      
+      for (const parkName of parks) {
+        const parkCode = getParkCodeFromName(parkName);
+        const parkData = await getPrimaryEntrance(parkCode);
+        
+        if (parkData) {
+          coordinates[parkName] = {
+            lat: Number(parkData.latitude_deg),
+            lng: Number(parkData.longitude_deg),
+          };
+        } else {
+          // Fallback to default coordinates if not found
+          coordinates[parkName] = { lat: 44.4280, lng: -110.5885 };
+        }
+      }
+      
+      setParkCoordinates(coordinates);
+    };
+    
+    if (parks.length > 0) {
+      fetchParkCoordinates();
+    }
+  }, [parks]);
+
   // Convert parks to marker format
   const parkMarkers: ParkMarker[] = useMemo(() => {
     return parks.map((parkName, index) => {
       const parkActivities = activities.filter((a) => a.park === parkName);
       const firstDay = parkActivities.length > 0 ? parkActivities[0].day : undefined;
       
-      // Get coordinates from mock data
-      const PARK_COORDINATES: Record<string, { lat: number; lng: number }> = {
-        "Yellowstone National Park": { lat: 44.4280, lng: -110.5885 },
-        "Grand Teton National Park": { lat: 43.7904, lng: -110.6818 },
-        "Grand Canyon National Park": { lat: 36.1069, lng: -112.1129 },
-        "Zion National Park": { lat: 37.2982, lng: -113.0263 },
-        "Bryce Canyon National Park": { lat: 37.5930, lng: -112.1871 },
-      };
-      
-      const coords = PARK_COORDINATES[parkName] || { lat: 44.4280, lng: -110.5885 };
+      // Get coordinates from Supabase data or fallback
+      const coords = parkCoordinates[parkName] || { lat: 44.4280, lng: -110.5885 };
       
       return {
         id: `park-${index}`,
@@ -517,7 +540,7 @@ function ItineraryContent() {
         day: firstDay,
       };
     });
-  }, [parks, activities]);
+  }, [parks, activities, parkCoordinates]);
 
   // Convert activities to marker format
   const activityMarkers: ActivityMarker[] = useMemo(() => {
@@ -535,15 +558,8 @@ function ItineraryContent() {
         };
       }
 
-      const PARK_COORDINATES: Record<string, { lat: number; lng: number }> = {
-        "Yellowstone National Park": { lat: 44.4280, lng: -110.5885 },
-        "Grand Teton National Park": { lat: 43.7904, lng: -110.6818 },
-        "Grand Canyon National Park": { lat: 36.1069, lng: -112.1129 },
-        "Zion National Park": { lat: 37.2982, lng: -113.0263 },
-        "Bryce Canyon National Park": { lat: 37.5930, lng: -112.1871 },
-      };
-
-      const parkCoords = PARK_COORDINATES[activity.park] || { lat: 44.4280, lng: -110.5885 };
+      // Get coordinates from Supabase data or fallback
+      const parkCoords = parkCoordinates[activity.park] || { lat: 44.4280, lng: -110.5885 };
       
       // Add small offset for each activity
       const activityIndex = activities.filter((a) => a.park === activity.park && a.day === activity.day).indexOf(activity);
@@ -557,7 +573,7 @@ function ItineraryContent() {
         type: activity.type,
       };
     });
-  }, [activities]);
+  }, [activities, parkCoordinates]);
 
   const handleParkClick = (parkId: string) => {
     const parkMarker = parkMarkers.find((p) => p.id === parkId);
