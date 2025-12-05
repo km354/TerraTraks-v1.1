@@ -1,81 +1,74 @@
+import Link from "next/link";
+
 export default function TermsPage() {
   return (
-    <>
-      <h1 className="text-3xl md:text-4xl font-semibold mb-4">Terms of Service</h1>
-      <p>Effective Date: December 4, 2025
-Last Updated: December 4, 2025
-Website: https://www.terratraks.com
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-12 md:py-16">
+      <h1 className="text-3xl md:text-4xl font-bold text-text-primary mb-8">Terms of Service</h1>
+      
+      <div className="prose prose-lg max-w-none space-y-6 text-text-secondary">
+        <p className="text-sm text-text-secondary mb-8">
+          Last updated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+        </p>
 
-Entity: TerraTraks
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-text-primary">1. Acceptance of Terms</h2>
+          <p>
+            By accessing and using TerraTraks, you accept and agree to be bound by the terms and provision of this agreement.
+          </p>
+        </section>
 
-1. Acceptance of Terms
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-text-primary">2. Use License</h2>
+          <p>
+            Permission is granted to temporarily use TerraTraks for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title, and under this license you may not:
+          </p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>Modify or copy the materials</li>
+            <li>Use the materials for any commercial purpose or for any public display</li>
+            <li>Attempt to reverse engineer any software contained on TerraTraks</li>
+            <li>Remove any copyright or other proprietary notations from the materials</li>
+          </ul>
+        </section>
 
-By accessing or using TerraTraks (“the Service”), you agree to these Terms of Service (“Terms”). If you do not agree, do not use this website.
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-text-primary">3. Disclaimer</h2>
+          <p>
+            The materials on TerraTraks are provided on an &apos;as is&apos; basis. TerraTraks makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including, without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
+          </p>
+        </section>
 
-2. Description of Service
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-text-primary">4. Limitations</h2>
+          <p>
+            In no event shall TerraTraks or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on TerraTraks, even if TerraTraks or a TerraTraks authorized representative has been notified orally or in writing of the possibility of such damage.
+          </p>
+        </section>
 
-TerraTraks provides AI-generated and user-edited travel itineraries, national park information, suggested hikes, routes, distances, driving times, lodging suggestions, and related travel-planning resources. TerraTraks does not guarantee accuracy and is not responsible for park closures, weather changes, road conditions, or trail safety.
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-text-primary">5. Affiliate Disclosure</h2>
+          <p>
+            TerraTraks may contain affiliate links. This means that if you click on certain links and make a purchase, we may receive a small commission at no additional cost to you. We only recommend products and services that we believe will be valuable to our users. Your support helps us continue to provide free and valuable content.
+          </p>
+        </section>
 
-3. Eligibility
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-text-primary">6. Revisions</h2>
+          <p>
+            TerraTraks may revise these terms of service at any time without notice. By using this website you are agreeing to be bound by the then current version of these terms of service.
+          </p>
+        </section>
 
-Users must be at least 18 years old or have parental consent.
-
-4. Accounts & Security
-
-You must provide accurate registration information. You are responsible for maintaining the confidentiality of your account credentials.
-
-5. Payments & Subscriptions
-
-Paid plans are processed through Stripe. Prices are subject to change. No refunds are guaranteed unless required by law.
-
-6. Affiliate Relationships
-
-TerraTraks may earn commissions from third parties, including but not limited to AllTrails, Amazon, VRBO, Airbnb, Booking.com, outdoor gear retailers, and travel vendors. These relationships do not influence recommendations.
-
-7. No Professional Advice
-
-Information provided by TerraTraks, including itinerary suggestions, hike difficulty, and estimated durations, is not professional advice. Users assume all risk when acting on information found on this website.
-
-8. User Conduct
-
-You may not:
-
-Scrape content
-
-Copy or distribute our content without permission
-
-Use TerraTraks for unlawful purposes
-
-Attempt to access backend systems or APIs without authorization
-
-9. Intellectual Property
-
-All text, images, features, and branding are the property of TerraTraks or licensed partners. NPS images remain property of the U.S. National Park Service where used under permitted guidelines.
-
-10. AI-Generated Content
-
-Itineraries and travel suggestions may be generated by AI. Content may contain inaccuracies, outdated information, or subjective assessments.
-
-11. Limitation of Liability
-
-To the fullest extent permitted by law, TerraTraks is not liable for:
-
-Injury, illness, or death during hikes or trips
-
-Incorrect park data, closures, permits, conditions, or directions
-
-Weather, wildlife encounters, altitude sickness, or natural disasters
-
-Issues arising from third-party vendors or bookings
-
-12. Termination
-
-We may suspend accounts at any time for abuse or policy violations.
-
-13. Governing Law
-
-These Terms are governed by the laws of the United States and the user’s state of residence.</p>
-    </>
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold text-text-primary">7. Contact Information</h2>
+          <p>
+            If you have any questions about these Terms of Service, please contact us at{" "}
+            <Link href="/support" className="text-primary hover:text-primary-dark underline">
+              our support page
+            </Link>
+            .
+          </p>
+        </section>
+      </div>
+    </div>
   );
 }
-

@@ -38,6 +38,25 @@ const BOTTOM_ITEMS = [
   { id: "logout", label: "Logout", href: "#" },
 ];
 
+const ALL_PARKS = [
+  "Yellowstone National Park",
+  "Grand Canyon National Park",
+  "Zion National Park",
+  "Yosemite National Park",
+  "Rocky Mountain National Park",
+  "Grand Teton National Park",
+  "Glacier National Park",
+  "Acadia National Park",
+  "Bryce Canyon National Park",
+  "Arches National Park",
+  "Canyonlands National Park",
+  "Capitol Reef National Park",
+  "Great Smoky Mountains National Park",
+  "Olympic National Park",
+  "Sequoia National Park",
+  "Kings Canyon National Park",
+];
+
 type ItineraryActivity = {
   id: string;
   name: string;
@@ -111,6 +130,14 @@ function ItineraryContent() {
     "Yellowstone National Park",
     "Grand Teton National Park",
   ]);
+  const [showAddPark, setShowAddPark] = useState(false);
+  const [parkSearchTerm, setParkSearchTerm] = useState("");
+  const [isParkInputFocused, setIsParkInputFocused] = useState(false);
+  const parkInputRef = useRef<HTMLDivElement>(null);
+  const [adults, setAdults] = useState(0);
+  const [kids, setKids] = useState(0);
+  const [showGuestSelector, setShowGuestSelector] = useState(false);
+  const guestSelectorRef = useRef<HTMLDivElement>(null);
 
   // Prevent body scrolling on itinerary page
   useEffect(() => {
@@ -332,9 +359,49 @@ function ItineraryContent() {
     setParks(parks.filter((_, i) => i !== index));
   };
 
-  const handleAddPark = () => {
-    // Stub: would open a modal or navigate to add park
-    console.log("Add park clicked");
+  const availableParks = ALL_PARKS.filter((p) => !parks.includes(p));
+
+  const parkOptions = parkSearchTerm === ""
+    ? availableParks.sort().slice(0, 8)
+    : availableParks
+        .filter((park) =>
+          park.toLowerCase().includes(parkSearchTerm.toLowerCase())
+        )
+        .sort()
+        .slice(0, 8);
+
+  // Close park search and guest selector when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        parkInputRef.current &&
+        !parkInputRef.current.contains(event.target as Node)
+      ) {
+        setIsParkInputFocused(false);
+        setShowAddPark(false);
+      }
+      if (
+        guestSelectorRef.current &&
+        !guestSelectorRef.current.contains(event.target as Node)
+      ) {
+        setShowGuestSelector(false);
+      }
+    };
+
+    if (showAddPark || showGuestSelector) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showAddPark, showGuestSelector]);
+
+  const handleAddPark = (park: string) => {
+    setParks([...parks, park]);
+    setParkSearchTerm("");
+    setIsParkInputFocused(false);
+    setShowAddPark(false);
   };
 
   const handleOpenDrawer = (day: number) => {
@@ -621,11 +688,143 @@ function ItineraryContent() {
                   12 hours • 450 miles
                 </p>
               </div>
-              <div>
+              <div className="relative" ref={guestSelectorRef}>
                 <label className="text-sm text-text-secondary">Travelers</label>
-                <p className="text-base md:text-lg font-medium text-text-primary">
-                  2 travelers
-                </p>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowGuestSelector(!showGuestSelector)}
+                    className={`w-full text-left rounded-lg border border-surface-divider px-3 py-2 pr-8 text-base md:text-lg font-medium hover:border-primary transition focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white ${
+                      adults + kids === 0
+                        ? "text-text-secondary"
+                        : "text-text-primary"
+                    }`}
+                  >
+                    {adults + kids === 0
+                      ? "Add travelers"
+                      : adults + kids === 1
+                      ? "1 traveler"
+                      : `${adults + kids} travelers`}
+                  </button>
+                  {adults + kids > 0 && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAdults(0);
+                        setKids(0);
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition"
+                      aria-label="Clear travelers"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                
+                {showGuestSelector && (
+                  <div className="absolute top-full left-0 mt-2 w-80 bg-white rounded-xl border border-surface-divider shadow-xl z-50 p-6">
+                    <div className="space-y-6">
+                      {/* Adults */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-base font-medium text-text-primary">
+                            Adults
+                          </div>
+                          <div className="text-sm text-text-secondary">
+                            Ages 13 or above
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <button
+                            type="button"
+                            onClick={() => setAdults(Math.max(0, adults - 1))}
+                            disabled={adults <= 0}
+                            className="w-8 h-8 rounded-full border border-surface-divider flex items-center justify-center hover:border-primary transition disabled:opacity-40 disabled:cursor-not-allowed"
+                            aria-label="Decrease adults"
+                          >
+                            <svg className="w-4 h-4 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                            </svg>
+                          </button>
+                          <span className="w-8 text-center text-base font-medium text-text-primary">
+                            {adults}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setAdults(adults + 1)}
+                            className="w-8 h-8 rounded-full border border-surface-divider flex items-center justify-center hover:border-primary transition"
+                            aria-label="Increase adults"
+                          >
+                            <svg className="w-4 h-4 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Divider */}
+                      <div className="border-t border-surface-divider"></div>
+
+                      {/* Kids */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="text-base font-medium text-text-primary">
+                            Children
+                          </div>
+                          <div className="text-sm text-text-secondary">
+                            Ages 2-12
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <button
+                            type="button"
+                            onClick={() => setKids(Math.max(0, kids - 1))}
+                            disabled={kids <= 0}
+                            className="w-8 h-8 rounded-full border border-surface-divider flex items-center justify-center hover:border-primary transition disabled:opacity-40 disabled:cursor-not-allowed"
+                            aria-label="Decrease children"
+                          >
+                            <svg className="w-4 h-4 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                            </svg>
+                          </button>
+                          <span className="w-8 text-center text-base font-medium text-text-primary">
+                            {kids}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setKids(kids + 1)}
+                            className="w-8 h-8 rounded-full border border-surface-divider flex items-center justify-center hover:border-primary transition"
+                            aria-label="Increase children"
+                          >
+                            <svg className="w-4 h-4 text-text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Clear Button */}
+                      {adults + kids > 0 && (
+                        <>
+                          <div className="border-t border-surface-divider"></div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAdults(0);
+                              setKids(0);
+                            }}
+                            className="w-full text-left text-sm text-primary hover:text-primary-dark font-medium transition"
+                          >
+                            Clear
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -660,12 +859,51 @@ function ItineraryContent() {
               </div>
             </SortableContext>
           </DndContext>
-          <button
-            onClick={handleAddPark}
-            className="w-full mt-4 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-dark text-sm md:text-base font-medium transition"
-          >
-            Add another park
-          </button>
+          
+          {/* Add Park Section */}
+          <div className="relative mt-4" ref={parkInputRef}>
+            {showAddPark && (
+              <div className="mb-2 relative">
+                <input
+                  type="text"
+                  value={parkSearchTerm}
+                  onChange={(e) => setParkSearchTerm(e.target.value)}
+                  onFocus={() => setIsParkInputFocused(true)}
+                  autoFocus
+                  placeholder="Search for a park..."
+                  className="w-full rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary"
+                />
+
+                {isParkInputFocused && parkOptions.length > 0 && (
+                  <div className="absolute top-full mt-2 w-full rounded-xl border border-surface-divider bg-white shadow-xl overflow-hidden z-20 max-h-64 overflow-y-auto">
+                    {parkOptions.map((park) => (
+                      <button
+                        key={park}
+                        type="button"
+                        onClick={() => handleAddPark(park)}
+                        onMouseDown={(e) => e.preventDefault()}
+                        className="w-full px-4 py-3 text-left hover:bg-surface-divider cursor-pointer text-base border-b border-surface-divider last:border-b-0"
+                      >
+                        {park}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!showAddPark && (
+              <button
+                onClick={() => {
+                  setShowAddPark(true);
+                  setIsParkInputFocused(true);
+                }}
+                className="w-full px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-dark text-sm md:text-base font-medium transition"
+              >
+                Add another park
+              </button>
+            )}
+          </div>
         </section>
 
         {/* Alerts & Permits Section */}
@@ -714,7 +952,7 @@ function ItineraryContent() {
                         {dayActivities.map((activity) => (
                           <div
                             key={activity.id}
-                            className="flex items-start justify-between gap-3 p-3 rounded-lg border border-surface-divider bg-white hover:bg-surface-background transition group"
+                            className="flex items-center justify-between gap-3 p-3 rounded-lg border border-surface-divider bg-white hover:bg-surface-background transition group"
                           >
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 mb-1">
@@ -751,7 +989,7 @@ function ItineraryContent() {
                             <button
                               type="button"
                               onClick={() => handleDeleteActivity(activity.id)}
-                              className="opacity-0 group-hover:opacity-100 transition text-xs text-text-secondary hover:text-red-500 flex-shrink-0"
+                              className="opacity-0 group-hover:opacity-100 transition text-base md:text-lg text-text-secondary hover:text-red-500 flex-shrink-0 flex items-center justify-center h-6 w-6"
                               aria-label={`Remove ${activity.name}`}
                             >
                               ×
@@ -785,8 +1023,10 @@ function ItineraryContent() {
           <AddActivityDrawer
             isOpen={isDrawerOpen}
             selectedDay={selectedDayForActivities}
+            availableDays={availableDays}
             onClose={handleCloseDrawer}
             onAddActivity={handleAddActivity}
+            onDayChange={setSelectedDayForActivities}
           />
         </div>
 

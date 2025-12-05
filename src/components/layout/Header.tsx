@@ -2,20 +2,21 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import LoginModal from "@/components/auth/LoginModal";
-import SignupModal from "@/components/auth/SignupModal";
+import AuthModal from "@/components/auth/AuthModal";
 
 export default function Header() {
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [isSignupOpen, setIsSignupOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
 
   const handleLogin = () => {
-    setIsLoginOpen(true);
+    setAuthMode("login");
+    setIsAuthOpen(true);
   };
 
   const handleSignup = (e: React.MouseEvent) => {
     e.preventDefault();
-    setIsSignupOpen(true);
+    setAuthMode("signup");
+    setIsAuthOpen(true);
   };
 
   return (
@@ -55,11 +56,11 @@ export default function Header() {
         </nav>
       </div>
 
-      {/* Auth Modals */}
-      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
-      <SignupModal
-        isOpen={isSignupOpen}
-        onClose={() => setIsSignupOpen(false)}
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={isAuthOpen} 
+        onClose={() => setIsAuthOpen(false)}
+        initialMode={authMode}
       />
     </header>
   );

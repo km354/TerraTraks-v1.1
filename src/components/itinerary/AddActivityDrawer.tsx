@@ -15,8 +15,10 @@ export interface Activity {
 interface AddActivityDrawerProps {
   isOpen: boolean;
   selectedDay: number | null;
+  availableDays: number[];
   onClose: () => void;
   onAddActivity: (activity: Activity) => void;
+  onDayChange: (day: number | null) => void;
 }
 
 // Mock activities data
@@ -141,8 +143,10 @@ const TYPE_LABELS: Record<Activity["type"], string> = {
 export default function AddActivityDrawer({
   isOpen,
   selectedDay,
+  availableDays,
   onClose,
   onAddActivity,
+  onDayChange,
 }: AddActivityDrawerProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [difficulty, setDifficulty] = useState<{
@@ -246,13 +250,38 @@ export default function AddActivityDrawer({
   return (
     <div className="w-full h-full bg-white flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-surface-divider flex-shrink-0">
-        <h2 className="text-lg md:text-xl font-semibold text-text-primary">
-          Add activities
-        </h2>
+      <div className="flex items-center justify-between gap-3 p-4 border-b border-surface-divider flex-shrink-0">
+        <div className="flex items-center gap-3 flex-1">
+          <h2 className="text-lg md:text-xl font-semibold text-text-primary">
+            Add activities
+          </h2>
+          <div className="relative">
+            <select
+              value={selectedDay || "all"}
+              onChange={(e) => {
+                const value = e.target.value;
+                onDayChange(value === "all" ? null : parseInt(value, 10));
+              }}
+              className="appearance-none rounded-lg border border-surface-divider px-3 py-2 pr-8 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white cursor-pointer"
+              style={{ maxHeight: "120px" }}
+            >
+              <option value="all">All days</option>
+              {availableDays.map((day) => (
+                <option key={day} value={day.toString()}>
+                  Day {day}
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+              <svg className="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
+        </div>
         <button
           onClick={onClose}
-          className="text-text-secondary hover:text-gray-900 text-xl font-semibold"
+          className="text-text-secondary hover:text-gray-900 text-xl font-semibold flex-shrink-0"
           aria-label="Close drawer"
         >
           ×
@@ -262,13 +291,6 @@ export default function AddActivityDrawer({
       {/* Scrollable Body */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 space-y-6">
-          {/* Day Indicator */}
-          {selectedDay !== null && (
-            <div className="text-sm md:text-base text-text-primary font-medium">
-              Adding activities to Day {selectedDay}
-            </div>
-          )}
-
           {/* Filters */}
           <div className="space-y-4">
             {/* Difficulty Filter */}
@@ -351,13 +373,13 @@ export default function AddActivityDrawer({
           </div>
 
           {/* Search Bar */}
-          <div>
+          <div className="flex items-center gap-3">
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Browse suggestions or search for specific hikes, viewpoints, and POIs"
-              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary"
+              className="flex-1 rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary"
             />
           </div>
 

@@ -19,10 +19,10 @@ OPENAI_API_KEY=your_openai_api_key
 NPS_API_KEY=your_nps_api_key
 ```
 
-## Google Maps & Directions API
+## Mapbox Maps & Directions API
 ```
-GOOGLE_MAPS_API_KEY=your_google_maps_api_key
-GOOGLE_DIRECTIONS_API_KEY=your_google_directions_api_key
+NEXT_PUBLIC_MAPBOX_PUBLIC_TOKEN=pk.eyJ1IjoidHQxMDAiLCJhIjoiY21pYzBzZ3RtMDU2bDJvb2lhN3pybGw0byJ9.GFRZXLxNz2pHHcwV80Vtdg
+MAPBOX_SECRET_KEY=pk.eyJ1IjoidHQxMDAiLCJhIjoiY21pYzE2OXl0MWhldTJrcHZlbmFycnU5cSJ9.RMzkDx_MeE8U_kP4yiDJhA
 ```
 
 ## Stripe Configuration

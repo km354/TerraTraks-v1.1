@@ -11,7 +11,7 @@ export default function Home() {
     <div className="space-y-8 md:space-y-12">
       <HeroSection />
       <div className="space-y-16 md:space-y-24">
-        <div className="-mt-4 md:-mt-6">
+        <div className="mt-2 md:mt-4">
           <PopularTripsSection />
         </div>
         <BeforeAfterSection />

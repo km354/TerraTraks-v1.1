@@ -148,7 +148,7 @@ export default function HeroSection() {
   return (
     <section id="hero-input" className="relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] min-h-[400px] md:min-h-[450px] flex items-start -mt-8 md:-mt-12 pt-12 md:pt-14">
       {/* Full-width background image */}
-      <div className="absolute inset-0 -z-0">
+      <div className="absolute inset-0 -z-0 bg-[#2d4a3e]">
         <Image
           src="/images/landing-page-yosemite.jpg"
           alt="Yosemite National Park"
@@ -156,6 +156,7 @@ export default function HeroSection() {
           className="object-cover"
           priority
           sizes="100vw"
+          quality={90}
         />
         {/* Dark overlay for text readability */}
         <div className="absolute inset-0 bg-black/30"></div>

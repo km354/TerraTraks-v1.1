@@ -42,19 +42,21 @@ export default function PopularTripsSection() {
         </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-        {POPULAR_TRIPS.map((trip) => (
+        {POPULAR_TRIPS.map((trip, index) => (
           <div
             key={trip.id}
             onClick={() => handleCardClick(trip.id)}
             className="flex flex-col rounded-xl bg-white border border-primary/10 shadow-sm overflow-hidden cursor-pointer transition hover:-translate-y-1 hover:shadow-md hover:border-primary/20"
           >
-            <div className="h-40 w-full bg-gray-50 relative overflow-hidden">
+            <div className="h-40 w-full bg-[#2d4a3e] relative overflow-hidden">
               <Image
                 src={trip.imageUrl}
                 alt={trip.name}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                priority={index < 3}
+                quality={85}
               />
             </div>
             <div className="p-4 space-y-1">

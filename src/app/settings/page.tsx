@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
-type SettingsSection = "account" | "subscription" | "billing" | "itineraries" | "notifications" | "security";
+type SettingsSection = "account" | "subscription" | "billing" | "trips";
 
 export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState<SettingsSection>("account");
@@ -10,7 +11,6 @@ export default function SettingsPage() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState("");
   const email = "terratraks00@gmail.com"; // Read-only
-  const accountCreated = "November 12, 2025";
 
   const handleEditName = () => {
     setTempName(fullName || "");
@@ -43,19 +43,9 @@ export default function SettingsPage() {
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
       </svg>
     )},
-    { id: "itineraries" as SettingsSection, label: "Itineraries", icon: (
+    { id: "trips" as SettingsSection, label: "Trips", icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    )},
-    { id: "notifications" as SettingsSection, label: "Notifications", icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-      </svg>
-    )},
-    { id: "security" as SettingsSection, label: "Security", icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
       </svg>
     )},
   ];
@@ -81,7 +71,7 @@ export default function SettingsPage() {
                   Profile Information
                 </h3>
                 <p className="text-sm text-text-secondary">
-                  Update your personal information and account details
+                  Update your personal information
                 </p>
               </div>
 
@@ -111,57 +101,89 @@ export default function SettingsPage() {
               {/* Full Name Field */}
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-2">
-                  Full Name
+                  Name
                 </label>
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-text-primary flex-1">
-                    {fullName || "Not set"}
-                  </span>
                   {isEditingName ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-1">
                       <input
                         type="text"
                         value={tempName}
                         onChange={(e) => setTempName(e.target.value)}
-                        className="rounded-lg border border-surface-divider px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        placeholder="Enter your name"
+                        className="flex-1 rounded-lg border border-surface-divider px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                         autoFocus
                       />
                       <button
                         onClick={handleSaveName}
-                        className="px-3 py-1.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition"
+                        className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition"
                       >
                         Save
                       </button>
                       <button
                         onClick={handleCancelEdit}
-                        className="px-3 py-1.5 rounded-lg border border-surface-divider text-sm font-medium hover:bg-surface-background transition"
+                        className="px-4 py-2 rounded-lg border border-surface-divider text-sm font-medium hover:bg-surface-background transition"
                       >
                         Cancel
                       </button>
                     </div>
                   ) : (
-                    <button
-                      onClick={handleEditName}
-                      className="px-3 py-1.5 rounded-lg border border-surface-divider text-sm font-medium text-text-primary hover:bg-surface-background transition"
-                    >
-                      Edit
-                    </button>
+                    <>
+                      <span className="text-sm text-text-primary flex-1">
+                        {fullName || "Not set"}
+                      </span>
+                      <button
+                        onClick={handleEditName}
+                        className="px-4 py-2 rounded-lg border border-surface-divider text-sm font-medium text-text-primary hover:bg-surface-background transition"
+                      >
+                        Edit
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
+            </div>
 
-              {/* Account Created */}
+            {/* Change Password Card */}
+            <div className="bg-white rounded-xl border border-surface-divider p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Account Created
-                </label>
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <span className="text-sm text-text-primary">{accountCreated}</span>
-                </div>
+                <h3 className="text-lg font-semibold text-text-primary mb-1">
+                  Change Password
+                </h3>
+                <p className="text-sm text-text-secondary">
+                  Update your password to keep your account secure
+                </p>
               </div>
+              <button
+                onClick={() => {
+                  // TODO: Implement password change
+                  console.log("Change password clicked");
+                }}
+                className="px-4 py-2 rounded-lg border border-surface-divider text-sm font-medium text-text-primary hover:bg-surface-background transition"
+              >
+                Change Password
+              </button>
+            </div>
+
+            {/* Delete Account Card */}
+            <div className="bg-white rounded-xl border border-red-200 p-6 space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-red-600 mb-1">
+                  Delete Account
+                </h3>
+                <p className="text-sm text-text-secondary">
+                  Permanently delete your account and all associated data. This action cannot be undone.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  // TODO: Implement account deletion
+                  console.log("Delete account clicked");
+                }}
+                className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition"
+              >
+                Delete Account
+              </button>
             </div>
           </div>
         );
@@ -177,8 +199,90 @@ export default function SettingsPage() {
                 Manage your subscription plan.
               </p>
             </div>
-            <div className="bg-white rounded-xl border border-surface-divider p-6">
-              <p className="text-sm text-text-secondary">Subscription content coming soon...</p>
+
+            {/* Current Plan Card */}
+            <div className="bg-white rounded-xl border border-surface-divider p-6 space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-text-primary mb-1">
+                  Current Plan
+                </h3>
+                <p className="text-sm text-text-secondary">
+                  Your active subscription plan
+                </p>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xl font-semibold text-text-primary">Free</p>
+                  <p className="text-sm text-text-secondary mt-1">
+                    Renewal date: N/A
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Trial Info (if applicable) */}
+            <div className="bg-white rounded-xl border border-primary/20 p-6 space-y-2">
+              <div className="flex items-center gap-2">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-sm font-medium text-text-primary">
+                  No active trial
+                </p>
+              </div>
+            </div>
+
+            {/* Upgrade/Downgrade Options */}
+            <div className="bg-white rounded-xl border border-surface-divider p-6 space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-text-primary mb-1">
+                  Change Plan
+                </h3>
+                <p className="text-sm text-text-secondary">
+                  Upgrade or downgrade your subscription
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => {
+                    // TODO: Implement upgrade
+                    console.log("Upgrade clicked");
+                  }}
+                  className="flex-1 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition"
+                >
+                  Upgrade to Explorer
+                </button>
+                <button
+                  onClick={() => {
+                    // TODO: Implement upgrade to Pro
+                    console.log("Upgrade to Pro clicked");
+                  }}
+                  className="flex-1 px-4 py-2 rounded-lg border border-primary text-primary text-sm font-medium hover:bg-primary/10 transition"
+                >
+                  Upgrade to Pro
+                </button>
+              </div>
+            </div>
+
+            {/* Cancel Subscription */}
+            <div className="bg-white rounded-xl border border-red-200 p-6 space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-red-600 mb-1">
+                  Cancel Subscription
+                </h3>
+                <p className="text-sm text-text-secondary">
+                  Cancel your subscription. You&apos;ll continue to have access until the end of your billing period.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  // TODO: Implement cancellation
+                  console.log("Cancel subscription clicked");
+                }}
+                className="px-4 py-2 rounded-lg border border-red-600 text-red-600 text-sm font-medium hover:bg-red-50 transition"
+              >
+                Cancel Subscription
+              </button>
             </div>
           </div>
         );
@@ -191,62 +295,143 @@ export default function SettingsPage() {
                 Billing
               </h2>
               <p className="text-sm text-text-secondary">
-                Manage your billing information.
+                Manage your payment methods and billing history.
               </p>
             </div>
-            <div className="bg-white rounded-xl border border-surface-divider p-6">
-              <p className="text-sm text-text-secondary">Billing content coming soon...</p>
+
+            {/* Payment Method Card */}
+            <div className="bg-white rounded-xl border border-surface-divider p-6 space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-text-primary mb-1">
+                  Payment Method
+                </h3>
+                <p className="text-sm text-text-secondary">
+                  Your current payment method
+                </p>
+              </div>
+              <div className="border border-surface-divider rounded-lg p-4 bg-surface-background">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <svg className="w-8 h-8 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    <div>
+                      <p className="text-sm font-medium text-text-primary">No payment method on file</p>
+                      <p className="text-xs text-text-secondary">Add a payment method to enable subscriptions</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      // TODO: Implement Stripe card component
+                      console.log("Update card clicked");
+                    }}
+                    className="px-4 py-2 rounded-lg border border-surface-divider text-sm font-medium text-text-primary hover:bg-surface-background transition"
+                  >
+                    Update Card
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Billing History Card */}
+            <div className="bg-white rounded-xl border border-surface-divider p-6 space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold text-text-primary mb-1">
+                  Billing History
+                </h3>
+                <p className="text-sm text-text-secondary">
+                  View and download your invoices
+                </p>
+              </div>
+              <div className="border border-surface-divider rounded-lg p-4">
+                <p className="text-sm text-text-secondary text-center py-4">
+                  No billing history available
+                </p>
+              </div>
             </div>
           </div>
         );
 
-      case "itineraries":
+      case "trips":
         return (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-semibold text-text-primary mb-2">
-                Itineraries
-              </h2>
-              <p className="text-sm text-text-secondary">
-                Manage your itinerary preferences.
-              </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl md:text-3xl font-semibold text-text-primary mb-2">
+                  Trips
+                </h2>
+                <p className="text-sm text-text-secondary">
+                  Manage your saved itineraries.
+                </p>
+              </div>
+              <Link
+                href="/filters"
+                className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition"
+              >
+                Create New Trip
+              </Link>
             </div>
-            <div className="bg-white rounded-xl border border-surface-divider p-6">
-              <p className="text-sm text-text-secondary">Itineraries content coming soon...</p>
-            </div>
-          </div>
-        );
 
-      case "notifications":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-semibold text-text-primary mb-2">
-                Notifications
-              </h2>
-              <p className="text-sm text-text-secondary">
-                Manage your notification preferences.
-              </p>
-            </div>
-            <div className="bg-white rounded-xl border border-surface-divider p-6">
-              <p className="text-sm text-text-secondary">Notifications content coming soon...</p>
-            </div>
-          </div>
-        );
+            {/* Trips List */}
+            <div className="bg-white rounded-xl border border-surface-divider p-6 space-y-4">
+              <div className="space-y-3">
+                {/* Example trip item */}
+                <div className="border border-surface-divider rounded-lg p-4 hover:bg-surface-background transition">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-base font-semibold text-text-primary mb-1">
+                        Yellowstone & Grand Teton Adventure
+                      </h3>
+                      <p className="text-sm text-text-secondary">
+                        June 15-20, 2025 • 5 days
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          // TODO: Implement edit
+                          console.log("Edit trip clicked");
+                        }}
+                        className="px-3 py-1.5 rounded-lg border border-surface-divider text-sm font-medium text-text-primary hover:bg-surface-background transition"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          // TODO: Implement duplicate
+                          console.log("Duplicate trip clicked");
+                        }}
+                        className="px-3 py-1.5 rounded-lg border border-surface-divider text-sm font-medium text-text-primary hover:bg-surface-background transition"
+                      >
+                        Duplicate
+                      </button>
+                      <button
+                        onClick={() => {
+                          // TODO: Implement delete
+                          console.log("Delete trip clicked");
+                        }}
+                        className="px-3 py-1.5 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 transition"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
-      case "security":
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl md:text-3xl font-semibold text-text-primary mb-2">
-                Security
-              </h2>
-              <p className="text-sm text-text-secondary">
-                Manage your security settings.
-              </p>
-            </div>
-            <div className="bg-white rounded-xl border border-surface-divider p-6">
-              <p className="text-sm text-text-secondary">Security content coming soon...</p>
+                {/* Empty state */}
+                <div className="border border-surface-divider rounded-lg p-8 text-center">
+                  <svg className="w-12 h-12 text-text-secondary mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-sm text-text-secondary mb-2">No trips saved yet</p>
+                  <Link
+                    href="/filters"
+                    className="inline-block px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition"
+                  >
+                    Create Your First Trip
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
         );
@@ -311,7 +496,7 @@ export default function SettingsPage() {
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition mt-2"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
             <span className="flex-1 text-left">Sign Out</span>
           </button>

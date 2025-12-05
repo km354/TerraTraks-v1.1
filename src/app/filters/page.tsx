@@ -121,20 +121,13 @@ function FiltersContent() {
   ]);
   const [isFlexibleDates, setIsFlexibleDates] = useState(false);
   const [selectedMonths, setSelectedMonths] = useState<Date[]>([]);
+  const [flexibleSeason, setFlexibleSeason] = useState<"no-preference" | "spring" | "summer" | "fall" | "winter">("no-preference");
+  const [flexibleDuration, setFlexibleDuration] = useState<"no-preference" | "weekend" | "short" | "week-long">("no-preference");
   const [tripPace, setTripPace] = useState<"relaxed" | "balanced" | "packed">(
     "balanced"
   );
-  const [maxMilesPerDay, setMaxMilesPerDay] = useState("");
-  const [maxHoursHiking, setMaxHoursHiking] = useState("");
-  const [difficulty, setDifficulty] = useState<{
-    easy: boolean;
-    moderate: boolean;
-    hard: boolean;
-  }>({
-    easy: false,
-    moderate: false,
-    hard: false,
-  });
+  const [drivingTime, setDrivingTime] = useState<"no-preference" | "<2" | "2-4" | "4+">("no-preference");
+  const [hikingTime, setHikingTime] = useState<"no-preference" | "0-1" | "1-3" | "4-6" | "all-day">("no-preference");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showAddPark, setShowAddPark] = useState(false);
   const [parkSearchTerm, setParkSearchTerm] = useState("");
@@ -216,17 +209,11 @@ function FiltersContent() {
     }
   };
 
-  const handleDifficultyChange = (level: "easy" | "moderate" | "hard") => {
-    setDifficulty((prev) => ({
-      ...prev,
-      [level]: !prev[level],
-    }));
-  };
 
   const availableParks = ALL_PARKS.filter((p) => !tripParks.includes(p));
 
   const parkOptions = parkSearchTerm === ""
-    ? []
+    ? availableParks.sort().slice(0, 8)
     : availableParks
         .filter((park) =>
           park.toLowerCase().includes(parkSearchTerm.toLowerCase())
@@ -237,8 +224,8 @@ function FiltersContent() {
   const handleAddPark = (park: string) => {
     setTripParks([...tripParks, park]);
     setParkSearchTerm("");
-    setShowAddPark(false);
     setIsParkInputFocused(false);
+    setShowAddPark(false);
   };
 
   const handleGenerateItinerary = () => {
@@ -252,22 +239,43 @@ function FiltersContent() {
     if (dateRange[0]) params.append("startDate", dateRange[0].toISOString());
     if (dateRange[1]) params.append("endDate", dateRange[1].toISOString());
     params.append("pace", tripPace);
-    if (maxMilesPerDay) params.append("maxMiles", maxMilesPerDay);
-    if (maxHoursHiking) params.append("maxHours", maxHoursHiking);
+    if (drivingTime !== "no-preference") params.append("drivingTime", drivingTime);
+    if (hikingTime !== "no-preference") params.append("hikingTime", hikingTime);
+    if (isFlexibleDates && flexibleSeason !== "no-preference") {
+      params.append("season", flexibleSeason);
+    }
+    if (isFlexibleDates && flexibleDuration !== "no-preference") {
+      params.append("tripDuration", flexibleDuration);
+    }
 
     router.push(`/itinerary/new?${params.toString()}`);
   };
 
   const formatDateRange = () => {
     if (isFlexibleDates) {
-      if (selectedMonths.length === 0) return "Select months";
-      if (selectedMonths.length === 1) {
-        return selectedMonths[0].toLocaleDateString("en-US", {
-          month: "long",
-          year: "numeric",
-        });
+      const seasonText = flexibleSeason !== "no-preference" 
+        ? flexibleSeason.charAt(0).toUpperCase() + flexibleSeason.slice(1)
+        : "";
+      const durationText = flexibleDuration !== "no-preference"
+        ? flexibleDuration === "weekend" ? "Weekend"
+          : flexibleDuration === "short" ? "Short trip"
+          : flexibleDuration === "week-long" ? "Week-long"
+          : ""
+        : "";
+      if (seasonText || durationText) {
+        return `${seasonText}${seasonText && durationText ? " • " : ""}${durationText}`;
       }
-      return `${selectedMonths.length} months selected`;
+      return "Flexible dates";
+    }
+    if (dateRange[0] && dateRange[1]) {
+      return `${dateRange[0].toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      })} - ${dateRange[1].toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })}`;
     }
     if (!dateRange[0]) return "Select dates";
     if (!dateRange[1]) {
@@ -277,14 +285,7 @@ function FiltersContent() {
         year: "numeric",
       });
     }
-    return `${dateRange[0].toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-    })} - ${dateRange[1].toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })}`;
+    return "Select dates";
   };
 
   const minDate = new Date();
@@ -297,11 +298,11 @@ function FiltersContent() {
         Customize your trip
       </h1>
 
-      {/* Trip Parks Section */}
+      {/* National Parks Section */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xl md:text-2xl font-semibold text-text-primary">
-            Trip Parks
+            National Parks
           </h2>
         </div>
         <DndContext
@@ -335,6 +336,7 @@ function FiltersContent() {
                 value={parkSearchTerm}
                 onChange={(e) => setParkSearchTerm(e.target.value)}
                 onFocus={() => setIsParkInputFocused(true)}
+                autoFocus
                 placeholder="Search for a park..."
                 className="w-full rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary"
               />
@@ -357,29 +359,33 @@ function FiltersContent() {
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={() => {
-              setShowAddPark(true);
-              setIsParkInputFocused(true);
-            }}
-            className="w-full mt-4 px-4 py-3 rounded-lg bg-primary text-white hover:bg-primary-dark font-medium transition text-sm md:text-base"
-          >
-            + Add another park
-          </button>
+          {!showAddPark && (
+            <div className="flex justify-center mt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddPark(true);
+                  setIsParkInputFocused(true);
+                }}
+                className="w-2/3 px-4 py-3 rounded-lg bg-primary text-white hover:bg-primary-dark font-medium transition text-sm md:text-base"
+              >
+                + Add another park
+              </button>
+            </div>
+          )}
         </div>
       </section>
 
       {/* Starting Point Section */}
       <section className="space-y-4">
         <h2 className="text-xl md:text-2xl font-semibold text-text-primary">
-          Starting Point
+          Where are you starting your trip?
         </h2>
         <input
           type="text"
           value={startingPoint}
           onChange={(e) => setStartingPoint(e.target.value)}
-          placeholder="City, airport, or address"
+          placeholder="City, airport, or address (e.g., Las Vegas, SLC Airport)"
           className="w-full rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary"
         />
       </section>
@@ -398,13 +404,12 @@ function FiltersContent() {
             >
               {formatDateRange()}
             </button>
-            {(dateRange[0] || selectedMonths.length > 0) && (
+            {dateRange[0] && (
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   setDateRange([null, null]);
-                  setSelectedMonths([]);
                   setShowDatePicker(false);
                 }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition"
@@ -418,77 +423,36 @@ function FiltersContent() {
           </div>
           {showDatePicker && (
             <div className="absolute z-50 mt-2 bg-white rounded-xl shadow-lg border border-surface-divider p-4">
-              {isFlexibleDates ? (
-                <div className="w-[600px]">
-                  <div className="grid grid-cols-3 gap-3">
-                    {Array.from({ length: 12 }, (_, i) => {
-                      const month = new Date();
-                      month.setMonth(month.getMonth() + i);
-                      const monthKey = `${month.getFullYear()}-${month.getMonth()}`;
-                      const isSelected = selectedMonths.some(
-                        (m) => `${m.getFullYear()}-${m.getMonth()}` === monthKey
-                      );
-                      return (
-                        <button
-                          key={monthKey}
-                          type="button"
-                          onClick={() => {
-                            if (isSelected) {
-                              setSelectedMonths(
-                                selectedMonths.filter(
-                                  (m) =>
-                                    `${m.getFullYear()}-${m.getMonth()}` !== monthKey
-                                )
-                              );
-                            } else {
-                              setSelectedMonths([...selectedMonths, month]);
-                            }
-                          }}
-                          className={`px-4 py-3 rounded-lg border text-sm font-medium transition ${
-                            isSelected
-                              ? "bg-primary text-white border-primary"
-                              : "bg-white text-text-primary border-surface-divider hover:border-primary"
-                          }`}
-                        >
-                          {month.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ) : (
-                <DatePicker
-                  selected={dateRange[0]}
-                  onChange={(dates) => {
-                    const [start, end] = dates as [Date | null, Date | null];
-                    setDateRange([start, end]);
-                    // Auto-save: don't close calendar automatically
-                  }}
-                  startDate={dateRange[0]}
-                  endDate={dateRange[1]}
-                  selectsRange
-                  monthsShown={2}
-                  minDate={minDate}
-                  maxDate={maxDate}
-                  inline
-                  calendarClassName="airbnb-calendar"
-                  className="airbnb-calendar-wrapper"
-                  shouldCloseOnSelect={false}
-                />
-              )}
+              <DatePicker
+                selected={dateRange[0]}
+                onChange={(dates) => {
+                  const [start, end] = dates as [Date | null, Date | null];
+                  setDateRange([start, end]);
+                  // Auto-save: don't close calendar automatically
+                }}
+                startDate={dateRange[0]}
+                endDate={dateRange[1]}
+                selectsRange
+                monthsShown={2}
+                minDate={minDate}
+                maxDate={maxDate}
+                inline
+                calendarClassName="airbnb-calendar"
+                className="airbnb-calendar-wrapper"
+                shouldCloseOnSelect={false}
+              />
             </div>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="space-y-4">
           <button
             type="button"
             onClick={() => {
-              const newFlexibleState = !isFlexibleDates;
-              setIsFlexibleDates(newFlexibleState);
-              if (newFlexibleState) {
-                setDateRange([null, null]);
-              } else {
-                setSelectedMonths([]);
+              setIsFlexibleDates(!isFlexibleDates);
+              if (!isFlexibleDates) {
+                // Reset flexible options when opening
+                setFlexibleSeason("no-preference");
+                setFlexibleDuration("no-preference");
               }
             }}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition ${
@@ -504,9 +468,123 @@ function FiltersContent() {
               I&apos;m flexible
             </span>
           </button>
-          {isFlexibleDates && selectedMonths.length > 0 && (
-            <div className="flex items-center gap-2 text-sm text-text-secondary">
-              <span>{selectedMonths.length} month{selectedMonths.length !== 1 ? 's' : ''} selected</span>
+          
+          {isFlexibleDates && (
+            <div className="space-y-6 pt-2 border-t border-surface-divider">
+              <div>
+                <label className="block text-sm md:text-base text-text-primary mb-3">
+                  When are you planning to go?
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="flexibleSeason"
+                      value="no-preference"
+                      checked={flexibleSeason === "no-preference"}
+                      onChange={(e) => setFlexibleSeason(e.target.value as typeof flexibleSeason)}
+                      className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                    />
+                    <span className="text-sm md:text-base text-text-primary">No preference</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="flexibleSeason"
+                      value="spring"
+                      checked={flexibleSeason === "spring"}
+                      onChange={(e) => setFlexibleSeason(e.target.value as typeof flexibleSeason)}
+                      className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                    />
+                    <span className="text-sm md:text-base text-text-primary">Spring (Mar–May)</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="flexibleSeason"
+                      value="summer"
+                      checked={flexibleSeason === "summer"}
+                      onChange={(e) => setFlexibleSeason(e.target.value as typeof flexibleSeason)}
+                      className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                    />
+                    <span className="text-sm md:text-base text-text-primary">Summer (Jun–Aug)</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="flexibleSeason"
+                      value="fall"
+                      checked={flexibleSeason === "fall"}
+                      onChange={(e) => setFlexibleSeason(e.target.value as typeof flexibleSeason)}
+                      className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                    />
+                    <span className="text-sm md:text-base text-text-primary">Fall (Sep–Nov)</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="flexibleSeason"
+                      value="winter"
+                      checked={flexibleSeason === "winter"}
+                      onChange={(e) => setFlexibleSeason(e.target.value as typeof flexibleSeason)}
+                      className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                    />
+                    <span className="text-sm md:text-base text-text-primary">Winter (Dec–Feb)</span>
+                  </label>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm md:text-base text-text-primary mb-3">
+                  How long is your trip?
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="flexibleDuration"
+                      value="no-preference"
+                      checked={flexibleDuration === "no-preference"}
+                      onChange={(e) => setFlexibleDuration(e.target.value as typeof flexibleDuration)}
+                      className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                    />
+                    <span className="text-sm md:text-base text-text-primary">No preference</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="flexibleDuration"
+                      value="weekend"
+                      checked={flexibleDuration === "weekend"}
+                      onChange={(e) => setFlexibleDuration(e.target.value as typeof flexibleDuration)}
+                      className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                    />
+                    <span className="text-sm md:text-base text-text-primary">Weekend (2–3 days)</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="flexibleDuration"
+                      value="short"
+                      checked={flexibleDuration === "short"}
+                      onChange={(e) => setFlexibleDuration(e.target.value as typeof flexibleDuration)}
+                      className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                    />
+                    <span className="text-sm md:text-base text-text-primary">Short trip (4–6 days)</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="flexibleDuration"
+                      value="week-long"
+                      checked={flexibleDuration === "week-long"}
+                      onChange={(e) => setFlexibleDuration(e.target.value as typeof flexibleDuration)}
+                      className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                    />
+                    <span className="text-sm md:text-base text-text-primary">Week-long (7–9 days)</span>
+                  </label>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -568,60 +646,117 @@ function FiltersContent() {
         <h2 className="text-xl md:text-2xl font-semibold text-text-primary">
           Preferences
         </h2>
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div>
-            <label className="block text-sm md:text-base text-text-primary mb-2">
-              Max miles driven per day <span className="text-text-secondary">(optional)</span>
+            <label className="block text-sm md:text-base text-text-primary mb-3">
+              Driving time per day:
             </label>
-            <input
-              type="number"
-              value={maxMilesPerDay}
-              onChange={(e) => setMaxMilesPerDay(e.target.value)}
-              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
-            />
-          </div>
-          <div>
-            <label className="block text-sm md:text-base text-text-primary mb-2">
-              Max hours hiking per day <span className="text-text-secondary">(optional)</span>
-            </label>
-            <input
-              type="number"
-              value={maxHoursHiking}
-              onChange={(e) => setMaxHoursHiking(e.target.value)}
-              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none [-moz-appearance:textfield]"
-            />
+            <div className="space-y-2">
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input
+                  type="radio"
+                  name="drivingTime"
+                  value="no-preference"
+                  checked={drivingTime === "no-preference"}
+                  onChange={(e) => setDrivingTime(e.target.value as typeof drivingTime)}
+                  className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                />
+                <span className="text-sm md:text-base text-text-primary">no preference</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input
+                  type="radio"
+                  name="drivingTime"
+                  value="<2"
+                  checked={drivingTime === "<2"}
+                  onChange={(e) => setDrivingTime(e.target.value as typeof drivingTime)}
+                  className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                />
+                <span className="text-sm md:text-base text-text-primary">&lt; 2 hours/day</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input
+                  type="radio"
+                  name="drivingTime"
+                  value="2-4"
+                  checked={drivingTime === "2-4"}
+                  onChange={(e) => setDrivingTime(e.target.value as typeof drivingTime)}
+                  className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                />
+                <span className="text-sm md:text-base text-text-primary">2–4 hours/day <span className="text-text-secondary">(recommended)</span></span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input
+                  type="radio"
+                  name="drivingTime"
+                  value="4+"
+                  checked={drivingTime === "4+"}
+                  onChange={(e) => setDrivingTime(e.target.value as typeof drivingTime)}
+                  className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                />
+                <span className="text-sm md:text-base text-text-primary">4+ hours/day</span>
+              </label>
+            </div>
           </div>
           <div>
             <label className="block text-sm md:text-base text-text-primary mb-3">
-              Difficulty <span className="text-text-secondary">(optional)</span>
+              Hiking time:
             </label>
-            <div className="flex flex-wrap gap-3">
-              <label className="flex items-center gap-2 cursor-pointer">
+            <div className="space-y-2">
+              <label className="flex items-center gap-3 cursor-pointer group">
                 <input
-                  type="checkbox"
-                  checked={difficulty.easy}
-                  onChange={() => handleDifficultyChange("easy")}
-                  className="w-4 h-4 rounded border-surface-divider text-primary focus:ring-primary"
+                  type="radio"
+                  name="hikingTime"
+                  value="no-preference"
+                  checked={hikingTime === "no-preference"}
+                  onChange={(e) => setHikingTime(e.target.value as typeof hikingTime)}
+                  className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
                 />
-                <span className="text-sm md:text-base text-text-primary">Easy</span>
+                <span className="text-sm md:text-base text-text-primary">no preference</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-3 cursor-pointer group">
                 <input
-                  type="checkbox"
-                  checked={difficulty.moderate}
-                  onChange={() => handleDifficultyChange("moderate")}
-                  className="w-4 h-4 rounded border-surface-divider text-primary focus:ring-primary"
+                  type="radio"
+                  name="hikingTime"
+                  value="0-1"
+                  checked={hikingTime === "0-1"}
+                  onChange={(e) => setHikingTime(e.target.value as typeof hikingTime)}
+                  className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
                 />
-                <span className="text-sm md:text-base text-text-primary">Moderate</span>
+                <span className="text-sm md:text-base text-text-primary">0-1 hrs/day</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer">
+              <label className="flex items-center gap-3 cursor-pointer group">
                 <input
-                  type="checkbox"
-                  checked={difficulty.hard}
-                  onChange={() => handleDifficultyChange("hard")}
-                  className="w-4 h-4 rounded border-surface-divider text-primary focus:ring-primary"
+                  type="radio"
+                  name="hikingTime"
+                  value="1-3"
+                  checked={hikingTime === "1-3"}
+                  onChange={(e) => setHikingTime(e.target.value as typeof hikingTime)}
+                  className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
                 />
-                <span className="text-sm md:text-base text-text-primary">Hard</span>
+                <span className="text-sm md:text-base text-text-primary">1–3 hrs/day</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input
+                  type="radio"
+                  name="hikingTime"
+                  value="4-6"
+                  checked={hikingTime === "4-6"}
+                  onChange={(e) => setHikingTime(e.target.value as typeof hikingTime)}
+                  className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                />
+                <span className="text-sm md:text-base text-text-primary">4–6 hrs/day</span>
+              </label>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input
+                  type="radio"
+                  name="hikingTime"
+                  value="all-day"
+                  checked={hikingTime === "all-day"}
+                  onChange={(e) => setHikingTime(e.target.value as typeof hikingTime)}
+                  className="w-4 h-4 text-primary focus:ring-primary focus:ring-2"
+                />
+                <span className="text-sm md:text-base text-text-primary">All-Day</span>
               </label>
             </div>
           </div>
