@@ -6,8 +6,8 @@ import type { Map, Marker } from "mapbox-gl";
 import { calculateRouteBetweenParks } from "@/lib/services/mapboxDirections";
 
 // SVG icon for national park markers
-const createParkMarkerIcon = (isSelected: boolean, day?: number): string => {
-  const size = isSelected ? 32 : 28;
+const createParkMarkerIcon = (isSelected: boolean): string => {
+  const size = isSelected ? 56 : 52;
   const viewBoxSize = 32;
   
   return `
@@ -57,11 +57,6 @@ const createParkMarkerIcon = (isSelected: boolean, day?: number): string => {
         ry="1.4"
         fill="rgba(0,0,0,0.12)"
       />
-      ${day ? `
-      <!-- Day badge -->
-      <circle cx="24" cy="8" r="7" fill="#1D3B2A" stroke="white" stroke-width="1.5"/>
-      <text x="24" y="11.5" text-anchor="middle" fill="white" font-size="9" font-weight="bold" font-family="Arial, sans-serif">${day}</text>
-      ` : ''}
     </svg>
   `;
 };
@@ -123,7 +118,6 @@ export default function MapPanel({
   const mapRef = useRef<Map | null>(null);
   const markersRef = useRef<Marker[]>([]);
   const routeLayerRef = useRef<string | null>(null);
-  const [hoveredActivity, setHoveredActivity] = useState<string | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
   // Calculate map center from parks and activities
@@ -145,12 +139,7 @@ export default function MapPanel({
     return { lat: avgLat, lng: avgLng };
   }, [parks, activities]);
 
-  // Filter activities by selected day
-  const visibleActivities = useMemo(() => {
-    return selectedDay
-      ? activities.filter((a) => a.day === selectedDay)
-      : activities;
-  }, [activities, selectedDay]);
+  // Activity markers are not displayed on the map
 
   // Filter parks by selected day
   const visibleParks = useMemo(() => {
@@ -225,14 +214,14 @@ export default function MapPanel({
       // Create custom marker element with SVG icon
       const el = document.createElement("div");
       el.className = "park-marker";
-      el.style.width = isSelected ? "32px" : "28px";
-      el.style.height = isSelected ? "32px" : "28px";
+      el.style.width = isSelected ? "56px" : "52px";
+      el.style.height = isSelected ? "56px" : "52px";
       el.style.cursor = "pointer";
       el.style.position = "relative";
       el.title = park.name + (park.day ? ` - Day ${park.day}` : "");
       
       // Insert SVG icon
-      el.innerHTML = createParkMarkerIcon(isSelected && isHighlighted, isSelected && park.day ? park.day : undefined);
+      el.innerHTML = createParkMarkerIcon(isSelected && isHighlighted);
 
       const marker = new mapboxgl.Marker({
         element: el,
@@ -250,46 +239,8 @@ export default function MapPanel({
       markersRef.current.push(marker);
     });
 
-    // Add activity markers
-    visibleActivities.forEach((activity) => {
-      const isHovered = hoveredActivity === activity.id;
-      const isHighlighted = selectedDay
-        ? activity.day === selectedDay
-        : true;
-
-      const el = document.createElement("div");
-      el.className = "activity-marker";
-      el.style.width = isHovered ? "20px" : "16px";
-      el.style.height = isHovered ? "20px" : "16px";
-      el.style.borderRadius = "50%";
-      el.style.backgroundColor = isHovered || isHighlighted ? "#3B82F6" : "#6B7280";
-      el.style.border = "2px solid white";
-      el.style.boxShadow = "0 2px 4px rgba(0,0,0,0.3)";
-      el.style.cursor = "pointer";
-      el.style.transition = "all 0.2s";
-      el.title = activity.name;
-
-      const marker = new mapboxgl.Marker(el)
-        .setLngLat([activity.lng, activity.lat])
-        .addTo(map);
-
-      el.addEventListener("mouseenter", () => {
-        setHoveredActivity(activity.id);
-        if (onActivityHover) {
-          onActivityHover(activity.id);
-        }
-      });
-
-      el.addEventListener("mouseleave", () => {
-        setHoveredActivity(null);
-        if (onActivityHover) {
-          onActivityHover(null);
-        }
-      });
-
-      markersRef.current.push(marker);
-    });
-  }, [visibleParks, visibleActivities, hoveredActivity, selectedDay, mapLoaded, onParkClick, onActivityHover]);
+    // Activity markers removed - not displaying on map
+  }, [visibleParks, selectedDay, mapLoaded, onParkClick]);
 
   // Calculate and display route between parks
   useEffect(() => {
@@ -356,11 +307,15 @@ export default function MapPanel({
             "line-cap": "round",
           },
           paint: {
-            "line-color": "#1D3B2A",
+            "line-color": "#4285F4",
             "line-width": 4,
-            "line-opacity": 0.7,
+            "line-opacity": 0.8,
           },
         });
+      } else {
+        // Update paint properties if layer already exists to ensure blue color
+        map.setPaintProperty(layerId, "line-color", "#4285F4");
+        map.setPaintProperty(layerId, "line-opacity", 0.8);
       }
 
       routeLayerRef.current = layerId;
@@ -381,16 +336,33 @@ export default function MapPanel({
     });
   }, [visibleParks, mapLoaded]);
 
-  // Handle resize
+  // Handle resize - both window and container size changes
   useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
+    if (!mapRef.current || !mapLoaded || !mapContainerRef.current) return;
 
     const handleResize = () => {
       mapRef.current?.resize();
     };
 
+    // Listen to window resize
     window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+
+    // Use ResizeObserver to detect container size changes (e.g., when drawer opens/closes)
+    const resizeObserver = new ResizeObserver(() => {
+      // Use requestAnimationFrame to ensure resize happens after layout update
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          mapRef.current?.resize();
+        });
+      });
+    });
+
+    resizeObserver.observe(mapContainerRef.current);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      resizeObserver.disconnect();
+    };
   }, [mapLoaded]);
 
   return (

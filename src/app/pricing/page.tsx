@@ -65,14 +65,14 @@ export default function PricingPage() {
         {plans.map((plan, index) => (
           <div
             key={plan.name}
-            className="bg-white rounded-xl border border-surface-divider p-6 md:p-8 flex flex-col shadow-sm hover:shadow-md transition-shadow"
+            className="bg-gradient-to-br from-[#1B5E20] via-[#2E7D32] to-[#1D3B2A] rounded-xl border border-[#1B5E20]/20 p-6 md:p-8 flex flex-col shadow-sm hover:shadow-md transition-shadow"
           >
             {/* Plan Header */}
             <div className="mb-6">
-              <h2 className="text-2xl md:text-3xl font-bold text-text-primary mb-3">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
                 {plan.name}
               </h2>
-              <p className="text-sm md:text-base text-text-secondary leading-relaxed">
+              <p className="text-sm md:text-base text-white/90 leading-relaxed">
                 {plan.description}
               </p>
             </div>
@@ -80,11 +80,11 @@ export default function PricingPage() {
             {/* Price */}
             <div className="mb-6">
               <div className="flex items-baseline gap-1">
-                <span className="text-4xl md:text-5xl font-bold text-text-primary">
+                <span className="text-4xl md:text-5xl font-bold text-white">
                   {plan.price}
                 </span>
                 {plan.priceSubtext && (
-                  <span className="text-base md:text-lg text-text-secondary">
+                  <span className="text-base md:text-lg text-white/80">
                     {plan.priceSubtext}
                   </span>
                 )}
@@ -97,7 +97,7 @@ export default function PricingPage() {
                 {plan.features.map((feature, featureIndex) => (
                   <li key={featureIndex} className="flex items-start gap-3">
                     <svg
-                      className="w-5 h-5 text-primary flex-shrink-0 mt-0.5"
+                      className="w-5 h-5 text-white flex-shrink-0 mt-0.5"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -109,7 +109,7 @@ export default function PricingPage() {
                         d="M5 13l4 4L19 7"
                       />
                     </svg>
-                    <span className="text-sm md:text-base text-text-primary">
+                    <span className="text-sm md:text-base text-white/95">
                       {feature}
                     </span>
                   </li>
@@ -121,11 +121,11 @@ export default function PricingPage() {
             <div className="mt-auto">
               <Link
                 href="/signup"
-                className="block w-full text-center px-6 py-3 rounded-lg bg-primary text-white font-medium hover:bg-primary-dark transition text-sm md:text-base"
+                className="block w-full text-center px-6 py-3 rounded-lg bg-white text-[#1B5E20] font-medium hover:bg-white/90 transition text-sm md:text-base"
               >
                 Get Started
               </Link>
-              <p className="text-xs text-text-secondary text-center mt-3">
+              <p className="text-xs text-white/80 text-center mt-3">
                 No Credit Card Required
               </p>
             </div>

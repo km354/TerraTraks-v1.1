@@ -1,6 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { getHikingTrailsByParkCode, getAllHikingTrails } from "@/lib/services/hikingTrails";
+import { getParkCodeFromName } from "@/lib/services/nationalParks";
+import type { HikingTrail } from "@/lib/types/hikingTrails";
 
 export interface Activity {
   id: string;
@@ -10,128 +13,19 @@ export interface Activity {
   type: "hike" | "viewpoint" | "scenic-drive" | "activity";
   requiresPermit: boolean;
   requiresShuttle: boolean;
+  linkUrl?: string;
+  permitUrl?: string;
 }
 
 interface AddActivityDrawerProps {
   isOpen: boolean;
   selectedDay: number | null;
   availableDays: number[];
+  parks: string[];
   onClose: () => void;
   onAddActivity: (activity: Activity) => void;
   onDayChange: (day: number | null) => void;
 }
-
-// Mock activities data
-const MOCK_ACTIVITIES: Activity[] = [
-  {
-    id: "1",
-    title: "Old Faithful Geyser",
-    tagline: "0.5 miles • Easy • 30 minutes",
-    difficulty: "easy",
-    type: "viewpoint",
-    requiresPermit: false,
-    requiresShuttle: false,
-  },
-  {
-    id: "2",
-    title: "Grand Prismatic Spring Overlook Trail",
-    tagline: "1.2 miles • Easy • 1 hour",
-    difficulty: "easy",
-    type: "hike",
-    requiresPermit: false,
-    requiresShuttle: false,
-  },
-  {
-    id: "3",
-    title: "Upper Geyser Basin Loop",
-    tagline: "3.2 miles • Moderate • 2–3 hours",
-    difficulty: "moderate",
-    type: "hike",
-    requiresPermit: false,
-    requiresShuttle: false,
-  },
-  {
-    id: "4",
-    title: "Lamar Valley Wildlife Viewing",
-    tagline: "Scenic Drive • Easy • 2–3 hours",
-    difficulty: "easy",
-    type: "scenic-drive",
-    requiresPermit: false,
-    requiresShuttle: false,
-  },
-  {
-    id: "5",
-    title: "Mount Washburn Trail",
-    tagline: "6.2 miles • Hard • 4–5 hours",
-    difficulty: "hard",
-    type: "hike",
-    requiresPermit: false,
-    requiresShuttle: false,
-  },
-  {
-    id: "6",
-    title: "Artist Point",
-    tagline: "0.1 miles • Easy • 15 minutes",
-    difficulty: "easy",
-    type: "viewpoint",
-    requiresPermit: false,
-    requiresShuttle: false,
-  },
-  {
-    id: "7",
-    title: "The Narrows",
-    tagline: "9.4 miles • Hard • 6–8 hours",
-    difficulty: "hard",
-    type: "hike",
-    requiresPermit: true,
-    requiresShuttle: true,
-  },
-  {
-    id: "8",
-    title: "Angels Landing",
-    tagline: "5.4 miles • Hard • 4–5 hours",
-    difficulty: "hard",
-    type: "hike",
-    requiresPermit: true,
-    requiresShuttle: false,
-  },
-  {
-    id: "9",
-    title: "Emerald Pools Trail",
-    tagline: "3.0 miles • Moderate • 2–3 hours",
-    difficulty: "moderate",
-    type: "hike",
-    requiresPermit: false,
-    requiresShuttle: false,
-  },
-  {
-    id: "10",
-    title: "Canyon Overlook Trail",
-    tagline: "1.0 mile • Easy • 1 hour",
-    difficulty: "easy",
-    type: "hike",
-    requiresPermit: false,
-    requiresShuttle: false,
-  },
-  {
-    id: "11",
-    title: "Zion Scenic Drive",
-    tagline: "Scenic Drive • Easy • 1–2 hours",
-    difficulty: "easy",
-    type: "scenic-drive",
-    requiresPermit: false,
-    requiresShuttle: true,
-  },
-  {
-    id: "12",
-    title: "Riverside Walk",
-    tagline: "2.2 miles • Easy • 1–2 hours",
-    difficulty: "easy",
-    type: "hike",
-    requiresPermit: false,
-    requiresShuttle: true,
-  },
-];
 
 const TYPE_LABELS: Record<Activity["type"], string> = {
   hike: "Hikes",
@@ -144,11 +38,14 @@ export default function AddActivityDrawer({
   isOpen,
   selectedDay,
   availableDays,
+  parks,
   onClose,
   onAddActivity,
   onDayChange,
 }: AddActivityDrawerProps) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [hikingTrails, setHikingTrails] = useState<HikingTrail[]>([]);
+  const [isLoadingTrails, setIsLoadingTrails] = useState(false);
   const [difficulty, setDifficulty] = useState<{
     easy: boolean;
     moderate: boolean;
@@ -172,8 +69,96 @@ export default function AddActivityDrawer({
   const [requiresPermit, setRequiresPermit] = useState(false);
   const [requiresShuttle, setRequiresShuttle] = useState(false);
 
+  // Fetch hiking trails from Supabase when parks change
+  useEffect(() => {
+    const fetchHikingTrails = async () => {
+      if (parks.length === 0) {
+        setHikingTrails([]);
+        return;
+      }
+
+      setIsLoadingTrails(true);
+      try {
+        // First, test if database has ANY data
+        const allTrailsTest = await getAllHikingTrails();
+        console.log("🧪 TEST: Total hikes in database:", allTrailsTest.length);
+        if (allTrailsTest.length > 0) {
+          console.log("🧪 TEST: Sample hike:", allTrailsTest[0]);
+          console.log("🧪 TEST: Sample park_code:", allTrailsTest[0].park_code);
+          console.log("🧪 TEST: Sample park_name:", allTrailsTest[0].park_name);
+        }
+        
+        // Convert park names to park codes for more reliable querying
+        const parkCodes = parks.map((parkName) => getParkCodeFromName(parkName));
+        console.log("🔍 Fetching hikes for parks:", parks);
+        console.log("🔍 Converted to park codes:", parkCodes);
+        
+        // Try park code first
+        let trails = await getHikingTrailsByParkCode(parkCodes);
+        console.log("✅ Fetched trails by park code:", trails.length);
+        
+        // If no results, try by park name as fallback
+        if (trails.length === 0) {
+          console.log("⚠️ No results by park code, trying park name...");
+          const { getHikingTrailsByParkName } = await import("@/lib/services/hikingTrails");
+          trails = await getHikingTrailsByParkName(parks);
+          console.log("✅ Fetched trails by park name:", trails.length);
+        }
+        
+        // If still no results, show all trails for debugging
+        if (trails.length === 0 && allTrailsTest.length > 0) {
+          console.log("⚠️ No matches found, but database has data. Showing all trails for debugging.");
+          trails = allTrailsTest;
+        }
+        
+        console.log("✅ Final trails:", trails.length, trails);
+        setHikingTrails(trails);
+      } catch (error) {
+        console.error("❌ Error fetching hiking trails:", error);
+        setHikingTrails([]);
+      } finally {
+        setIsLoadingTrails(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchHikingTrails();
+    }
+  }, [parks, isOpen]);
+
+  // Convert hiking trails to Activity format
+  const hikingTrailActivities: Activity[] = useMemo(() => {
+    const activities = hikingTrails.map((trail) => {
+      // Map difficulty: "strenuous" -> "hard"
+      const mappedDifficulty: "easy" | "moderate" | "hard" =
+        trail.difficulty === "strenuous" ? "hard" : trail.difficulty;
+
+      return {
+        id: `trail-${trail.id}`,
+        title: trail.hike_name,
+        tagline: `${trail.difficulty.charAt(0).toUpperCase() + trail.difficulty.slice(1)} • ${trail.park_name}`,
+        difficulty: mappedDifficulty,
+        type: "hike" as const,
+        requiresPermit: trail.permit_required,
+        requiresShuttle: false, // Hiking trails don't have shuttle info in DB
+        linkUrl: trail.hike_url,
+        permitUrl: trail.permit_url || undefined,
+      };
+    });
+    console.log("🔄 Converted to activities:", activities.length, activities);
+    return activities;
+  }, [hikingTrails]);
+
+  // Use only hikes from Supabase - no mock activities
+  const allActivities = useMemo(() => {
+    console.log("📋 All activities (before filtering):", hikingTrailActivities.length);
+    return hikingTrailActivities;
+  }, [hikingTrailActivities]);
+
   const filteredActivities = useMemo(() => {
-    let filtered = MOCK_ACTIVITIES;
+    let filtered = allActivities;
+    console.log("🔍 Starting filter with", filtered.length, "activities");
+    console.log("🔍 Filters - search:", searchTerm, "difficulty:", difficulty, "type:", type, "permit:", requiresPermit, "shuttle:", requiresShuttle);
 
     // Search filter
     if (searchTerm) {
@@ -183,6 +168,7 @@ export default function AddActivityDrawer({
           activity.title.toLowerCase().includes(searchLower) ||
           activity.tagline.toLowerCase().includes(searchLower)
       );
+      console.log("🔍 After search filter:", filtered.length);
     }
 
     // Difficulty filter
@@ -196,6 +182,7 @@ export default function AddActivityDrawer({
         if (difficulty.hard && activity.difficulty === "hard") return true;
         return false;
       });
+      console.log("🔍 After difficulty filter:", filtered.length);
     }
 
     // Type filter
@@ -210,20 +197,24 @@ export default function AddActivityDrawer({
         if (type.activity && activity.type === "activity") return true;
         return false;
       });
+      console.log("🔍 After type filter:", filtered.length);
     }
 
     // Permit filter
     if (requiresPermit) {
       filtered = filtered.filter((activity) => activity.requiresPermit);
+      console.log("🔍 After permit filter:", filtered.length);
     }
 
     // Shuttle filter
     if (requiresShuttle) {
       filtered = filtered.filter((activity) => activity.requiresShuttle);
+      console.log("🔍 After shuttle filter:", filtered.length);
     }
 
+    console.log("✅ Final filtered activities:", filtered.length);
     return filtered;
-  }, [searchTerm, difficulty, type, requiresPermit, requiresShuttle]);
+  }, [allActivities, searchTerm, difficulty, type, requiresPermit, requiresShuttle]);
 
   const handleDifficultyToggle = (level: "easy" | "moderate" | "hard") => {
     setDifficulty((prev) => ({
@@ -387,6 +378,9 @@ export default function AddActivityDrawer({
           <div className="space-y-2">
             <h3 className="text-sm md:text-base font-medium text-text-primary">
               Results ({filteredActivities.length})
+              {isLoadingTrails && (
+                <span className="text-xs text-text-secondary ml-2">(Loading hikes...)</span>
+              )}
             </h3>
             <div className="space-y-2">
               {filteredActivities.map((activity) => (

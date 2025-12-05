@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, Suspense, useMemo } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
+import DatePicker from "react-datepicker";
 import AddActivityDrawer, {
   Activity,
 } from "@/components/itinerary/AddActivityDrawer";
@@ -123,6 +124,7 @@ function SortableParkItem({ park, index, onRemove }: SortableParkItemProps) {
 function ItineraryContent() {
   const params = useParams();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const itineraryId = params.id as string;
   const [activeSection, setActiveSection] = useState("overview");
   const isScrollingRef = useRef(false);
@@ -146,6 +148,8 @@ function ItineraryContent() {
   const [showGuestSelector, setShowGuestSelector] = useState(false);
   const guestSelectorRef = useRef<HTMLDivElement>(null);
   const [parkCoordinates, setParkCoordinates] = useState<Record<string, { lat: number; lng: number }>>({});
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const datePickerRef = useRef<HTMLDivElement>(null);
 
   // Prevent body scrolling on itinerary page
   useEffect(() => {
@@ -170,6 +174,57 @@ function ItineraryContent() {
   const startingPoint = searchParams.get("startingPoint") || "";
   const startDateStr = searchParams.get("startDate");
   const endDateStr = searchParams.get("endDate");
+  
+  // Date range state for date picker
+  const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([
+    startDateStr ? new Date(startDateStr) : null,
+    endDateStr ? new Date(endDateStr) : null,
+  ]);
+  
+  // Update date range when URL params change
+  useEffect(() => {
+    setDateRange([
+      startDateStr ? new Date(startDateStr) : null,
+      endDateStr ? new Date(endDateStr) : null,
+    ]);
+  }, [startDateStr, endDateStr]);
+  
+  // Handle date change and update URL
+  const handleDateChange = (dates: [Date | null, Date | null]) => {
+    const [start, end] = dates;
+    setDateRange([start, end]);
+    
+    // Update URL params
+    const newParams = new URLSearchParams(searchParams.toString());
+    if (start) {
+      newParams.set("startDate", start.toISOString().split("T")[0]);
+    } else {
+      newParams.delete("startDate");
+    }
+    if (end) {
+      newParams.set("endDate", end.toISOString().split("T")[0]);
+    } else {
+      newParams.delete("endDate");
+    }
+    
+    router.push(`/itinerary/${itineraryId}?${newParams.toString()}`);
+  };
+  
+  // Close date picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
+        setShowDatePicker(false);
+      }
+    };
+    
+    if (showDatePicker) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [showDatePicker]);
   
   // Calculate number of days from date range
   const numberOfDays = useMemo(() => {
@@ -468,7 +523,7 @@ function ItineraryContent() {
       type: activity.type === "hike" ? "hike" : activity.type === "viewpoint" ? "viewpoint" : "other",
       day: selectedDayForActivities,
       park: parks[0], // Default to first park, could be improved
-      linkUrl: undefined,
+      linkUrl: activity.linkUrl,
       requiresPermit: activity.requiresPermit,
       requiresShuttle: activity.requiresShuttle,
     };
@@ -655,9 +710,10 @@ function ItineraryContent() {
           {BOTTOM_ITEMS.map((item) => (
             <button
               key={item.id}
-              onClick={() => {
+              onClick={(e) => {
+                e.preventDefault();
                 if (item.href !== "#") {
-                  window.location.href = item.href;
+                  router.push(item.href);
                 } else {
                   // Handle logout
                   console.log("Logout clicked");
@@ -722,11 +778,32 @@ function ItineraryContent() {
           </h2>
           <div className="bg-white rounded-xl border border-surface-divider p-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="relative" ref={datePickerRef}>
                 <label className="text-sm text-text-secondary">Dates</label>
-                <p className="text-base md:text-lg font-medium text-text-primary">
+                <button
+                  type="button"
+                  onClick={() => setShowDatePicker(!showDatePicker)}
+                  className="text-base md:text-lg font-medium text-text-primary hover:text-primary transition cursor-pointer text-left w-full"
+                >
                   {formattedDateRange}
-                </p>
+                </button>
+                {showDatePicker && (
+                  <div className="absolute z-50 mt-2 bg-white rounded-xl shadow-lg border border-surface-divider p-4">
+                    <DatePicker
+                      selected={dateRange[0]}
+                      onChange={handleDateChange}
+                      startDate={dateRange[0]}
+                      endDate={dateRange[1]}
+                      selectsRange
+                      monthsShown={2}
+                      minDate={new Date()}
+                      inline
+                      calendarClassName="airbnb-calendar"
+                      className="airbnb-calendar-wrapper"
+                      shouldCloseOnSelect={false}
+                    />
+                  </div>
+                )}
               </div>
               <div>
                 <label className="text-sm text-text-secondary">Number of Parks</label>
@@ -1111,6 +1188,7 @@ function ItineraryContent() {
             isOpen={isDrawerOpen}
             selectedDay={selectedDayForActivities}
             availableDays={availableDays}
+            parks={parks}
             onClose={handleCloseDrawer}
             onAddActivity={handleAddActivity}
             onDayChange={setSelectedDayForActivities}
