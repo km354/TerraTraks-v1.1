@@ -126,10 +126,15 @@ function ItineraryContent() {
   const isScrollingRef = useRef(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedDay, setSelectedDay] = useState("all");
-  const [parks, setParks] = useState([
-    "Yellowstone National Park",
-    "Grand Teton National Park",
-  ]);
+  
+  // Initialize parks from URL params
+  const [parks, setParks] = useState<string[]>(() => {
+    const parksFromUrl = searchParams.getAll("parks");
+    return parksFromUrl.length > 0 ? parksFromUrl : [
+      "Yellowstone National Park",
+      "Grand Teton National Park",
+    ];
+  });
   const [showAddPark, setShowAddPark] = useState(false);
   const [parkSearchTerm, setParkSearchTerm] = useState("");
   const [isParkInputFocused, setIsParkInputFocused] = useState(false);
@@ -147,11 +152,24 @@ function ItineraryContent() {
     };
   }, []);
 
+  // Sync parks with URL params
+  useEffect(() => {
+    const parksFromUrl = searchParams.getAll("parks");
+    if (parksFromUrl.length > 0) {
+      setParks(parksFromUrl);
+    }
+  }, [searchParams]);
+
+  // Read preferences from URL params
+  const pace = searchParams.get("pace") || "balanced";
+  const drivingTime = searchParams.get("drivingTime") || "no-preference";
+  const hikingTime = searchParams.get("hikingTime") || "no-preference";
+  const startingPoint = searchParams.get("startingPoint") || "";
+  const startDateStr = searchParams.get("startDate");
+  const endDateStr = searchParams.get("endDate");
+  
   // Calculate number of days from date range
   const numberOfDays = useMemo(() => {
-    const startDateStr = searchParams.get("startDate");
-    const endDateStr = searchParams.get("endDate");
-    
     if (startDateStr && endDateStr) {
       const startDate = new Date(startDateStr);
       const endDate = new Date(endDateStr);
@@ -160,7 +178,31 @@ function ItineraryContent() {
       return diffDays;
     }
     return 3; // Default to 3 days if no dates provided
-  }, [searchParams]);
+  }, [startDateStr, endDateStr]);
+  
+  // Format dates for display
+  const formattedDateRange = useMemo(() => {
+    if (startDateStr && endDateStr) {
+      const startDate = new Date(startDateStr);
+      const endDate = new Date(endDateStr);
+      return `${startDate.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+      })} - ${endDate.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })}`;
+    }
+    return "Dates not set";
+  }, [startDateStr, endDateStr]);
+  
+  // Format pace for display
+  const formattedPace = useMemo(() => {
+    if (pace === "relaxed") return "Relaxed";
+    if (pace === "packed") return "Packed";
+    return "Balanced";
+  }, [pace]);
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -667,7 +709,7 @@ function ItineraryContent() {
               <div>
                 <label className="text-sm text-text-secondary">Dates</label>
                 <p className="text-base md:text-lg font-medium text-text-primary">
-                  June 15 - June 20, 2024
+                  {formattedDateRange}
                 </p>
               </div>
               <div>
@@ -676,12 +718,41 @@ function ItineraryContent() {
                   {parks.length} parks
                 </p>
               </div>
+              {startingPoint && (
+                <div>
+                  <label className="text-sm text-text-secondary">Starting Point</label>
+                  <p className="text-base md:text-lg font-medium text-text-primary">
+                    {startingPoint}
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="text-sm text-text-secondary">Pace</label>
                 <p className="text-base md:text-lg font-medium text-text-primary">
-                  Balanced
+                  {formattedPace}
                 </p>
               </div>
+              {drivingTime !== "no-preference" && (
+                <div>
+                  <label className="text-sm text-text-secondary">Driving Time</label>
+                  <p className="text-base md:text-lg font-medium text-text-primary">
+                    {drivingTime === "<2" ? "< 2 hours/day" : 
+                     drivingTime === "2-4" ? "2-4 hours/day" : 
+                     drivingTime === "4+" ? "4+ hours/day" : drivingTime}
+                  </p>
+                </div>
+              )}
+              {hikingTime !== "no-preference" && (
+                <div>
+                  <label className="text-sm text-text-secondary">Hiking Time</label>
+                  <p className="text-base md:text-lg font-medium text-text-primary">
+                    {hikingTime === "0-1" ? "0-1 hrs/day" :
+                     hikingTime === "1-3" ? "1-3 hrs/day" :
+                     hikingTime === "4-6" ? "4-6 hrs/day" :
+                     hikingTime === "all-day" ? "All-Day" : hikingTime}
+                  </p>
+                </div>
+              )}
               <div>
                 <label className="text-sm text-text-secondary">Total Driving</label>
                 <p className="text-base md:text-lg font-medium text-text-primary">
@@ -954,26 +1025,23 @@ function ItineraryContent() {
                             key={activity.id}
                             className="flex items-center justify-between gap-3 p-3 rounded-lg border border-surface-divider bg-white hover:bg-surface-background transition group"
                           >
-                            <div className="flex-1 min-w-0">
+                            <div 
+                              className="flex-1 min-w-0 cursor-pointer"
+                              onClick={() => {
+                                if (activity.linkUrl) {
+                                  window.open(activity.linkUrl, '_blank', 'noopener,noreferrer');
+                                }
+                              }}
+                            >
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="text-sm md:text-base font-medium text-text-primary">
                                   {activity.name}
                                 </span>
-                                <span className="text-xs text-text-secondary capitalize">
-                                  {activity.type}
+                                <span className="text-xs text-text-secondary">
+                                  {activity.type === "poi" ? "POI" : activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}
                                 </span>
                               </div>
                               <div className="flex flex-wrap items-center gap-2">
-                                {activity.linkUrl && (
-                                  <a
-                                    href={activity.linkUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-brand-primary hover:text-brand-hover underline"
-                                  >
-                                    View details
-                                  </a>
-                                )}
                                 {activity.requiresPermit && (
                                   <span className="inline-flex items-center px-2 py-0.5 rounded text-xs bg-badge-warning text-text-primary border border-surface-divider">
                                     Permit
@@ -988,7 +1056,10 @@ function ItineraryContent() {
                             </div>
                             <button
                               type="button"
-                              onClick={() => handleDeleteActivity(activity.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteActivity(activity.id);
+                              }}
                               className="opacity-0 group-hover:opacity-100 transition text-base md:text-lg text-text-secondary hover:text-red-500 flex-shrink-0 flex items-center justify-center h-6 w-6"
                               aria-label={`Remove ${activity.name}`}
                             >

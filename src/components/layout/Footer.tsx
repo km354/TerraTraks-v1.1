@@ -101,7 +101,7 @@ export default function Footer() {
               href="/legal/risk"
               className="hover:text-primary transition"
             >
-              Risk & Medical Disclaimers
+              Risk, Medical & AI Disclaimers
             </Link>
             <Link
               href="/legal/accessibility"

@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 @import "react-datepicker/dist/react-datepicker.css";
+@import "mapbox-gl/dist/mapbox-gl.css";
 
 @layer base {
   body {

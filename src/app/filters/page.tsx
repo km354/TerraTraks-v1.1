@@ -147,14 +147,22 @@ function FiltersContent() {
     const parksFromUrl = searchParams.getAll("parks");
     if (parksFromUrl.length > 0) {
       setTripParks(parksFromUrl);
-      return;
-    }
-
-    const preset = searchParams.get("preset");
-    if (preset && PRESET_PARKS[preset]) {
-      setTripParks(PRESET_PARKS[preset]);
     } else {
-      setTripParks([]);
+      const preset = searchParams.get("preset");
+      if (preset && PRESET_PARKS[preset]) {
+        setTripParks(PRESET_PARKS[preset]);
+      } else {
+        setTripParks([]);
+      }
+    }
+  }, [searchParams]);
+
+  // Initialize date range from URL params
+  useEffect(() => {
+    const startDateStr = searchParams.get("startDate");
+    const endDateStr = searchParams.get("endDate");
+    if (startDateStr && endDateStr) {
+      setDateRange([new Date(startDateStr), new Date(endDateStr)]);
     }
   }, [searchParams]);
 
