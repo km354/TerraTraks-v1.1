@@ -27,3 +27,4 @@ export interface NationalParkInsert {
   primary_entrance_visitor_center?: string | null;
 }
 
+

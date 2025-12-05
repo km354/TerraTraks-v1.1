@@ -106,3 +106,4 @@ CREATE POLICY "Allow public read access to national_parks"
   FOR SELECT
   USING (true);
 
+
