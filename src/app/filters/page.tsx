@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import DatePicker from "react-datepicker";
 import { searchPlaces, type GeocodingFeature } from "@/lib/services/mapboxGeocoding";
+import { searchAirports } from "@/lib/services/airports";
+import type { Airport } from "@/lib/types/airports";
 import {
   DndContext,
   closestCenter,
@@ -70,12 +72,16 @@ const POPULAR_STARTING_LOCATIONS: GeocodingFeature[] = [
     relevance: 1,
     properties: {},
     text: "Las Vegas",
-    place_name: "Las Vegas, Nevada, United States",
+    place_name: "Las Vegas, NV, United States",
     center: [-115.1372, 36.1699],
     geometry: {
       type: "Point",
       coordinates: [-115.1372, 36.1699],
     },
+    context: [
+      { id: "place.123", text: "Las Vegas" },
+      { id: "region.456", text: "Nevada", short_code: "US-NV" },
+    ],
   },
   {
     id: "popular-salt-lake-city",
@@ -84,12 +90,16 @@ const POPULAR_STARTING_LOCATIONS: GeocodingFeature[] = [
     relevance: 1,
     properties: {},
     text: "Salt Lake City",
-    place_name: "Salt Lake City, Utah, United States",
+    place_name: "Salt Lake City, UT, United States",
     center: [-111.8910, 40.7608],
     geometry: {
       type: "Point",
       coordinates: [-111.8910, 40.7608],
     },
+    context: [
+      { id: "place.123", text: "Salt Lake City" },
+      { id: "region.456", text: "Utah", short_code: "US-UT" },
+    ],
   },
   {
     id: "popular-phoenix",
@@ -98,14 +108,208 @@ const POPULAR_STARTING_LOCATIONS: GeocodingFeature[] = [
     relevance: 1,
     properties: {},
     text: "Phoenix",
-    place_name: "Phoenix, Arizona, United States",
+    place_name: "Phoenix, AZ, United States",
     center: [-112.0740, 33.4484],
     geometry: {
       type: "Point",
       coordinates: [-112.0740, 33.4484],
     },
+    context: [
+      { id: "place.123", text: "Phoenix" },
+      { id: "region.456", text: "Arizona", short_code: "US-AZ" },
+    ],
   },
 ];
+
+// Helper to convert Airport to GeocodingFeature for display
+function airportToGeocodingFeature(airport: Airport): GeocodingFeature {
+  return {
+    id: `airport-${airport.id}`,
+    type: "Feature",
+    place_type: ["poi"], // Mark as POI for airport detection
+    relevance: 1,
+    properties: {
+      category: "airport",
+      maki: "airport",
+    },
+    text: airport.name,
+    place_name: `${airport.name}, ${airport.city}, ${airport.state}`,
+    center: [airport.longitude, airport.latitude],
+    geometry: {
+      type: "Point",
+      coordinates: [airport.longitude, airport.latitude],
+    },
+    context: [
+      { id: "place.airport", text: airport.city },
+      { id: "region.airport", text: airport.state, short_code: `US-${airport.state}` },
+    ],
+  };
+}
+
+// Helper to get state abbreviation
+function getStateAbbreviation(stateName: string): string | null {
+  const stateMap: Record<string, string> = {
+    'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
+    'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',
+    'Florida': 'FL', 'Georgia': 'GA', 'Hawaii': 'HI', 'Idaho': 'ID',
+    'Illinois': 'IL', 'Indiana': 'IN', 'Iowa': 'IA', 'Kansas': 'KS',
+    'Kentucky': 'KY', 'Louisiana': 'LA', 'Maine': 'ME', 'Maryland': 'MD',
+    'Massachusetts': 'MA', 'Michigan': 'MI', 'Minnesota': 'MN', 'Mississippi': 'MS',
+    'Missouri': 'MO', 'Montana': 'MT', 'Nebraska': 'NE', 'Nevada': 'NV',
+    'New Hampshire': 'NH', 'New Jersey': 'NJ', 'New Mexico': 'NM', 'New York': 'NY',
+    'North Carolina': 'NC', 'North Dakota': 'ND', 'Ohio': 'OH', 'Oklahoma': 'OK',
+    'Oregon': 'OR', 'Pennsylvania': 'PA', 'Rhode Island': 'RI', 'South Carolina': 'SC',
+    'South Dakota': 'SD', 'Tennessee': 'TN', 'Texas': 'TX', 'Utah': 'UT',
+    'Vermont': 'VT', 'Virginia': 'VA', 'Washington': 'WA', 'West Virginia': 'WV',
+    'Wisconsin': 'WI', 'Wyoming': 'WY', 'District of Columbia': 'DC'
+  };
+  return stateMap[stateName] || null;
+}
+
+// Helper to check if a feature is an airport
+function isAirportFeature(feature: GeocodingFeature): boolean {
+  const types = feature.place_type || [];
+  const category = feature.properties?.category?.toLowerCase() || '';
+  const maki = feature.properties?.maki?.toLowerCase() || '';
+  const text = (feature.text || '').toLowerCase();
+  const placeName = (feature.place_name || '').toLowerCase();
+  
+  // Check if it's a POI with airport category (even though POI might not work in v5)
+  if (types.includes('poi') && (category === 'airport' || maki === 'airport')) {
+    return true;
+  }
+  
+  // Check if category or maki indicates airport
+  if (category === 'airport' || maki === 'airport') {
+    return true;
+  }
+  
+  // IMPORTANT: Check if text/place_name contains airport-related terms
+  // This will catch airports that come back as "place" type (since POI doesn't work in Mapbox v5)
+  const airportKeywords = ['airport', 'international', 'airfield', 'air base', 'aviation'];
+  const hasAirportKeyword = airportKeywords.some(keyword => 
+    text.includes(keyword) || placeName.includes(keyword)
+  );
+  
+  if (hasAirportKeyword) {
+    return true;
+  }
+  
+  // Check for common airport name patterns (e.g., "DFW Airport", "JFK International")
+  const airportCodePattern = /\b([A-Z]{2,4})\s+(airport|international)\b/i;
+  if (airportCodePattern.test(text) || airportCodePattern.test(placeName)) {
+    return true;
+  }
+  
+  // Check for airport codes in the name (DFW, JFK, LAX, etc.)
+  const commonAirportCodes = ['dfw', 'jfk', 'lax', 'ord', 'atl', 'den', 'sfo', 'sea', 'msp', 'dtw', 'phx', 'clt', 'mia', 'bwi', 'iad', 'dul', 'slc', 'iah', 'mco', 'ewr', 'lga', 'bos', 'pdx', 'san', 'stl', 'bna', 'msy', 'iad', 'dca'];
+  const hasAirportCode = commonAirportCodes.some(code => 
+    text.includes(code) || placeName.includes(code)
+  );
+  
+  if (hasAirportCode && (text.includes('airport') || placeName.includes('airport') || text.includes('international') || placeName.includes('international'))) {
+    return true;
+  }
+  
+  return false;
+}
+
+// Format place name to "City, ST" format using context array, or full address for addresses
+function formatPlaceName(feature: GeocodingFeature): string {
+  // Check if it's an airport first (even if returned as address)
+  const isAirport = isAirportFeature(feature);
+  if (isAirport) {
+    // For airports, prefer place_name which usually includes "Airport Name, City, ST"
+    return feature.place_name || feature.text || '';
+  }
+  
+  // For addresses, show the full place_name (includes street, city, state, zip)
+  const isAddress = feature.place_type?.includes('address');
+  if (isAddress) {
+    return feature.place_name || feature.text || '';
+  }
+  
+  // For POIs (other than airports), show the full place_name
+  const isPOI = feature.place_type?.includes('poi');
+  if (isPOI) {
+    return feature.place_name || feature.text || '';
+  }
+  
+  // For places/cities, format as "City, ST" (no zip codes)
+  if (feature.context && feature.context.length > 0) {
+    // Find the place/locality context (city name)
+    const placeContext = feature.context.find(ctx => 
+      ctx.id.startsWith('place.') || ctx.id.startsWith('locality.')
+    );
+    // Find the region context (state) with short_code
+    const regionContext = feature.context.find(ctx => 
+      ctx.id.startsWith('region.') && ctx.short_code
+    );
+    
+    if (placeContext && regionContext && regionContext.short_code) {
+      // Extract state abbreviation from short_code (e.g., "US-IL" -> "IL")
+      const stateCode = regionContext.short_code.split('-').pop()?.toUpperCase();
+      if (stateCode) {
+        return `${placeContext.text}, ${stateCode}`;
+      }
+    }
+    
+    // Fallback: try to extract from place_name
+    const parts = feature.place_name.split(',').map(p => p.trim());
+    if (parts.length >= 2) {
+      // Get the last part which should be the state
+      const lastPart = parts[parts.length - 1];
+      // If it's "United States", get the second-to-last part
+      if (lastPart === "United States" && parts.length >= 3) {
+        const statePart = parts[parts.length - 2];
+        // Remove zip code if present (e.g., "NV 89101" -> "NV")
+        const stateOnly = statePart.replace(/\s+\d{5}$/, '').replace(/^\d{5}\s+/, '');
+        const stateAbbr = getStateAbbreviation(stateOnly);
+        if (stateAbbr) {
+          return `${parts[0]}, ${stateAbbr}`;
+        }
+      } else {
+        // Remove zip code if present
+        const stateOnly = lastPart.replace(/\s+\d{5}$/, '').replace(/^\d{5}\s+/, '');
+        const stateAbbr = getStateAbbreviation(stateOnly);
+        if (stateAbbr) {
+          return `${parts[0]}, ${stateAbbr}`;
+        }
+        // Check if it's already a state abbreviation (2 letters)
+        if (/^[A-Z]{2}$/.test(stateOnly)) {
+          return `${parts[0]}, ${stateOnly}`;
+        }
+      }
+    }
+  }
+  
+  // Final fallback: try to extract city and state from place_name
+  if (feature.place_name) {
+    const parts = feature.place_name.split(',').map(p => p.trim());
+    if (parts.length >= 2) {
+      const city = parts[0];
+      const lastPart = parts[parts.length - 1];
+      const statePart = lastPart === "United States" && parts.length >= 3
+        ? parts[parts.length - 2]
+        : lastPart;
+      
+      // Remove zip code if present
+      const stateOnly = statePart.replace(/\s+\d{5}$/, '').replace(/^\d{5}\s+/, '');
+      const stateAbbr = getStateAbbreviation(stateOnly);
+      if (stateAbbr) {
+        return `${city}, ${stateAbbr}`;
+      }
+      // Check if it's already a state abbreviation (2 letters)
+      if (/^[A-Z]{2}$/.test(stateOnly)) {
+        return `${city}, ${stateOnly}`;
+      }
+    }
+    return feature.place_name;
+  }
+  
+  // Final fallback: return the main text
+  return feature.text || '';
+}
 
 interface SortableParkItemProps {
   park: string;
@@ -218,11 +422,22 @@ function FiltersContent() {
     }
   }, [searchParams]);
 
-  // Filter out invalid suggestions (like "745n" or other non-place results)
-  const filterValidSuggestions = useCallback((results: GeocodingFeature[]): GeocodingFeature[] => {
-    return results.filter((feature) => {
+  // Filter and sort suggestions - prioritize based on query type
+  const filterValidSuggestions = useCallback((results: GeocodingFeature[], query: string): GeocodingFeature[] => {
+    // First filter out invalid suggestions
+    const validResults = results.filter((feature) => {
       const text = feature.text || "";
       const placeName = feature.place_name || "";
+      
+      // For addresses and airports, be more lenient with filtering
+      const isAddress = feature.place_type?.includes('address');
+      const isPOI = feature.place_type?.includes('poi');
+      const isAirport = isAirportFeature(feature); // Check if it's an airport (even if not POI type)
+      
+      if (isAddress || isPOI || isAirport) {
+        // Addresses and airports can have numbers or short codes, so just check for minimum length
+        return text.trim().length >= 2 || placeName.trim().length >= 2;
+      }
       
       // Filter out results that are:
       // 1. Just numbers or mostly numbers (like "745n")
@@ -237,6 +452,89 @@ function FiltersContent() {
       
       return isValidPlaceName;
     });
+
+    const queryLower = query.trim().toLowerCase();
+    // Detect if query looks like an address (contains numbers)
+    const looksLikeAddress = /\d/.test(query.trim());
+    // Detect if query looks like an airport
+    const looksLikeAirport = /airport|airfield|airfield/i.test(query) || 
+      /^[A-Z]{2,4}$/i.test(query.trim()) || // 2-4 letter acronyms like DFW, JFK, LAX
+      /^[A-Z]{2,4}\s+airport$/i.test(query.trim()); // "DFW Airport"
+
+    // Sort results: prioritize based on query type
+    const getPriority = (feature: GeocodingFeature, isAddressQuery: boolean, isAirportQuery: boolean): number => {
+      const types = feature.place_type || [];
+      const isAddress = types.includes('address');
+      const isPOI = types.includes('poi');
+      const isAirport = isAirportFeature(feature);
+      
+      if (isAddressQuery) {
+        // If query looks like an address, prioritize addresses (but not airports)
+        if (isAirport) return 7; // Airports last for address queries
+        if (isAddress) return 1;
+        if (isPOI) return 2;
+        if (types.includes('place')) return 3;
+        if (types.includes('locality')) return 4;
+        if (types.includes('neighborhood')) return 5;
+        if (types.includes('district')) return 6;
+        return 7;
+      } else if (isAirportQuery) {
+        // If query looks like an airport, prioritize airports (even if they're "place" type)
+        if (isAirport) return 1; // Airports first for airport queries (regardless of type)
+        // Then regular places (but airports already caught above)
+        if (types.includes('place') && !isAirport) return 2;
+        if (types.includes('locality')) return 3;
+        if (types.includes('neighborhood')) return 4;
+        if (types.includes('district')) return 5;
+        if (isAddress) return 6;
+        if (isPOI) return 7; // POI doesn't work in v5, but keep for compatibility
+        return 8;
+      } else {
+        // Normal priority: places/cities first, but airports within places are prioritized
+        // Check if place is actually an airport
+        if (types.includes('place')) {
+          return isAirport ? 1 : 2; // Airports in place type get priority 1, regular places get 2
+        }
+        if (types.includes('locality')) return 3;
+        if (isAirport) return 4; // Airports in other types
+        if (types.includes('neighborhood')) return 5;
+        if (types.includes('district')) return 6;
+        if (isAddress) return 7;
+        if (isPOI) return 8; // POI doesn't work in v5, but keep for compatibility
+        return 9;
+      }
+    };
+
+    return validResults.sort((a, b) => {
+      const priorityA = getPriority(a, looksLikeAddress, looksLikeAirport);
+      const priorityB = getPriority(b, looksLikeAddress, looksLikeAirport);
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+      // If same priority, sort by relevance (higher relevance first)
+      // Boost relevance for addresses when query contains numbers
+      // Boost relevance for airports when query looks like an airport
+      let relevanceA = a.relevance || 0;
+      let relevanceB = b.relevance || 0;
+      
+      // Helper to check if feature is an airport
+      const isAirportA = isAirportFeature(a);
+      const isAirportB = isAirportFeature(b);
+      
+      if (looksLikeAddress) {
+        const isAddressA = a.place_type?.includes('address') && !isAirportA;
+        const isAddressB = b.place_type?.includes('address') && !isAirportB;
+        if (isAddressA && !isAddressB) relevanceA += 1; // Boost addresses (but not airports)
+        if (isAddressB && !isAddressA) relevanceB += 1; // Boost addresses (but not airports)
+      }
+      
+      if (looksLikeAirport) {
+        if (isAirportA && !isAirportB) relevanceA += 2; // Strong boost for airports
+        if (isAirportB && !isAirportA) relevanceB += 2; // Strong boost for airports
+      }
+      
+      return relevanceB - relevanceA;
+    });
   }, []);
 
   // Debounced search for starting point
@@ -250,14 +548,63 @@ function FiltersContent() {
 
       setIsLoadingSuggestions(true);
       try {
-        const results = await searchPlaces(query, {
+        const queryLower = query.trim().toLowerCase();
+        // Detect if query looks like an address (contains numbers)
+        const looksLikeAddress = /\d/.test(query.trim());
+        // Detect if query looks like an airport (contains "airport" or is a short acronym like "dfw", "jfk", etc.)
+        const looksLikeAirport = /airport|airfield|airfield/i.test(query) || 
+          /^[A-Z]{2,4}$/i.test(query.trim()) || // 2-4 letter acronyms like DFW, JFK, LAX
+          /^[A-Z]{2,4}\s+airport$/i.test(query.trim()); // "DFW Airport"
+        
+        // Build types list - Note: POI type doesn't work in Mapbox v5 (removed as of Aug 2025)
+        // Airports will come back as "place" type, so we detect them by name/keywords
+        let types: string;
+        if (looksLikeAddress) {
+          types = "address,place,locality,neighborhood,district"; // Addresses first when numbers detected
+        } else if (looksLikeAirport) {
+          types = "place,locality,neighborhood,district,address"; // Places first for airport queries (airports come as "place")
+        } else {
+          types = "place,locality,neighborhood,district,address"; // Places first
+        }
+        
+        // Search Supabase airports if query looks like an airport
+        let supabaseAirports: GeocodingFeature[] = [];
+        if (looksLikeAirport) {
+          try {
+            const airports = await searchAirports(query);
+            supabaseAirports = airports.map(airportToGeocodingFeature);
+            console.log(`✅ Found ${supabaseAirports.length} airports from Supabase for: "${query}"`);
+          } catch (error) {
+            console.error("❌ Error searching Supabase airports:", error);
+          }
+        }
+        
+        // Search for places, cities, and addresses
+        // Note: Airports come back as "place" type in Mapbox v5 (POI type was removed)
+        // We detect airports by checking their name/keywords in isAirportFeature()
+        const mapboxResults = await searchPlaces(query, {
           limit: 15, // Fetch up to 15 results for scrolling
-          types: "place,locality,neighborhood,address,district",
+          types: types,
           country: "us", // Limit to USA only
         });
         
-        // Filter out invalid suggestions
-        const validResults = filterValidSuggestions(results);
+        // Debug: log results to see what we're getting
+        if (looksLikeAirport) {
+          console.log("🔍 Mapbox airport search results:", mapboxResults.map(r => ({
+            text: r.text,
+            place_name: r.place_name,
+            place_type: r.place_type,
+            category: r.properties?.category,
+            maki: r.properties?.maki
+          })));
+        }
+        
+        // Merge Supabase airports with Mapbox results
+        // Supabase airports get priority (they're more accurate for airport searches)
+        const allResults = [...supabaseAirports, ...mapboxResults];
+        
+        // Filter and sort: prioritize addresses if query looks like an address, otherwise prioritize places/airports
+        const validResults = filterValidSuggestions(allResults, query);
         setStartingPointSuggestions(validResults);
         setShowStartingPointSuggestions(true);
       } catch (error) {
@@ -276,9 +623,12 @@ function FiltersContent() {
   // Handle starting point input change
   const handleStartingPointChange = (value: string) => {
     setStartingPoint(value);
-    // Clear the selected feature if user is typing
-    if (value !== startingPointFeature?.place_name) {
-      setStartingPointFeature(null);
+    // Clear the selected feature if user is typing something different
+    if (startingPointFeature) {
+      const formattedName = formatPlaceName(startingPointFeature);
+      if (value !== formattedName && value !== startingPointFeature.place_name) {
+        setStartingPointFeature(null);
+      }
     }
 
     // Clear existing timeout
@@ -288,9 +638,13 @@ function FiltersContent() {
 
     // If there's text, search immediately (will debounce)
     if (value.trim().length >= 1) {
+      // Faster debounce for address-like queries (contains numbers)
+      const looksLikeAddress = /\d/.test(value.trim());
+      const debounceTime = looksLikeAddress ? 150 : 300; // Faster for addresses
+      
       searchTimeoutRef.current = setTimeout(() => {
         searchStartingPoint(value);
-      }, 300);
+      }, debounceTime);
     } else {
       // If empty, show popular locations
       setStartingPointSuggestions(POPULAR_STARTING_LOCATIONS);
@@ -312,7 +666,9 @@ function FiltersContent() {
 
   // Handle starting point selection
   const handleSelectStartingPoint = (feature: GeocodingFeature) => {
-    setStartingPoint(feature.place_name);
+    // Use formatted name for display, but keep full feature for coordinates
+    const formattedName = formatPlaceName(feature);
+    setStartingPoint(formattedName);
     setStartingPointFeature(feature);
     setStartingPointSuggestions([]);
     setShowStartingPointSuggestions(false);
@@ -630,24 +986,28 @@ function FiltersContent() {
               }}
               style={{ overscrollBehavior: 'contain' }}
             >
-              {startingPointSuggestions.map((feature) => (
-                <button
-                  key={feature.id}
-                  type="button"
-                  onClick={() => handleSelectStartingPoint(feature)}
-                  onMouseDown={(e) => e.preventDefault()}
-                  className="w-full px-4 py-3 text-left hover:bg-surface-divider cursor-pointer text-sm md:text-base border-b border-surface-divider last:border-b-0"
-                >
-                  <div className="font-medium text-text-primary">
-                    {feature.text}
-                  </div>
-                  {feature.place_name !== feature.text && (
-                    <div className="text-xs md:text-sm text-text-secondary mt-1">
-                      {feature.place_name}
+              {startingPointSuggestions.map((feature) => {
+                const formattedName = formatPlaceName(feature);
+                const isAddress = feature.place_type?.includes('address');
+                return (
+                  <button
+                    key={feature.id}
+                    type="button"
+                    onClick={() => handleSelectStartingPoint(feature)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="w-full px-4 py-3 text-left hover:bg-surface-divider cursor-pointer text-sm md:text-base border-b border-surface-divider last:border-b-0"
+                  >
+                    <div className="font-medium text-text-primary">
+                      {formattedName}
                     </div>
-                  )}
-                </button>
-              ))}
+                    {isAddress && feature.text !== feature.place_name && (
+                      <div className="text-xs md:text-sm text-text-secondary mt-1">
+                        {feature.place_name}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
@@ -738,8 +1098,8 @@ function FiltersContent() {
                 <label className="block text-sm md:text-base text-text-primary mb-3">
                   When are you planning to go?
                 </label>
-                <div className="space-y-2 pr-2">
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="space-y-2 pr-2 overflow-visible">
+                  <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                     <input
                       type="radio"
                       name="flexibleSeason"
@@ -750,7 +1110,7 @@ function FiltersContent() {
                     />
                     <span className="text-sm md:text-base text-text-primary">No preference</span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                     <input
                       type="radio"
                       name="flexibleSeason"
@@ -761,7 +1121,7 @@ function FiltersContent() {
                     />
                     <span className="text-sm md:text-base text-text-primary">Spring (Mar–May)</span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                     <input
                       type="radio"
                       name="flexibleSeason"
@@ -772,7 +1132,7 @@ function FiltersContent() {
                     />
                     <span className="text-sm md:text-base text-text-primary">Summer (Jun–Aug)</span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                     <input
                       type="radio"
                       name="flexibleSeason"
@@ -783,7 +1143,7 @@ function FiltersContent() {
                     />
                     <span className="text-sm md:text-base text-text-primary">Fall (Sep–Nov)</span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                     <input
                       type="radio"
                       name="flexibleSeason"
@@ -801,8 +1161,8 @@ function FiltersContent() {
                 <label className="block text-sm md:text-base text-text-primary mb-3">
                   How long is your trip?
                 </label>
-                <div className="space-y-2 pr-2">
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                <div className="space-y-2 pr-2 overflow-visible">
+                  <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                     <input
                       type="radio"
                       name="flexibleDuration"
@@ -813,7 +1173,7 @@ function FiltersContent() {
                     />
                     <span className="text-sm md:text-base text-text-primary">No preference</span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                     <input
                       type="radio"
                       name="flexibleDuration"
@@ -824,7 +1184,7 @@ function FiltersContent() {
                     />
                     <span className="text-sm md:text-base text-text-primary">Weekend (2–3 days)</span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                     <input
                       type="radio"
                       name="flexibleDuration"
@@ -835,7 +1195,7 @@ function FiltersContent() {
                     />
                     <span className="text-sm md:text-base text-text-primary">Short trip (4–6 days)</span>
                   </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
+                  <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                     <input
                       type="radio"
                       name="flexibleDuration"
@@ -909,13 +1269,13 @@ function FiltersContent() {
         <h2 className="text-xl md:text-2xl font-semibold text-text-primary">
           Preferences
         </h2>
-        <div className="space-y-6 pr-2">
+        <div className="space-y-6 pr-4 overflow-visible">
           <div>
             <label className="block text-sm md:text-base text-text-primary mb-3">
               Driving time per day:
             </label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-3 cursor-pointer group">
+            <div className="space-y-2 overflow-visible">
+              <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                 <input
                   type="radio"
                   name="drivingTime"
@@ -926,7 +1286,7 @@ function FiltersContent() {
                 />
                 <span className="text-sm md:text-base text-text-primary">no preference</span>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
+              <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                 <input
                   type="radio"
                   name="drivingTime"
@@ -937,7 +1297,7 @@ function FiltersContent() {
                 />
                 <span className="text-sm md:text-base text-text-primary">&lt; 2 hours/day</span>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
+              <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                 <input
                   type="radio"
                   name="drivingTime"
@@ -948,7 +1308,7 @@ function FiltersContent() {
                 />
                 <span className="text-sm md:text-base text-text-primary">2–4 hours/day <span className="text-text-secondary">(recommended)</span></span>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
+              <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                 <input
                   type="radio"
                   name="drivingTime"
@@ -965,8 +1325,8 @@ function FiltersContent() {
             <label className="block text-sm md:text-base text-text-primary mb-3">
               Hiking time:
             </label>
-            <div className="space-y-2">
-              <label className="flex items-center gap-3 cursor-pointer group">
+            <div className="space-y-2 overflow-visible">
+              <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                 <input
                   type="radio"
                   name="hikingTime"
@@ -977,7 +1337,7 @@ function FiltersContent() {
                 />
                 <span className="text-sm md:text-base text-text-primary">no preference</span>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
+              <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                 <input
                   type="radio"
                   name="hikingTime"
@@ -988,7 +1348,7 @@ function FiltersContent() {
                 />
                 <span className="text-sm md:text-base text-text-primary">0-1 hrs/day</span>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
+              <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                 <input
                   type="radio"
                   name="hikingTime"
@@ -999,7 +1359,7 @@ function FiltersContent() {
                 />
                 <span className="text-sm md:text-base text-text-primary">1–3 hrs/day</span>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
+              <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                 <input
                   type="radio"
                   name="hikingTime"
@@ -1010,7 +1370,7 @@ function FiltersContent() {
                 />
                 <span className="text-sm md:text-base text-text-primary">4–6 hrs/day</span>
               </label>
-              <label className="flex items-center gap-3 cursor-pointer group">
+              <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                 <input
                   type="radio"
                   name="hikingTime"

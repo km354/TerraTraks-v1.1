@@ -8,16 +8,9 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "#1B5E20",
-        "primary-dark": "#0F5132",
-        secondary: "#A7B8A0",
-        accent: "#D6A75A",
-        sand: "#F5EFE6",
-        success: "#2E7D32",
         brand: {
-          primary: "#1B5E20",
-          "primary-dark": "#0F5132",
-          hover: "#0F5132",
+          primary: "#000000",
+          hover: "#222222",
         },
         surface: {
           white: "#FFFFFF",

@@ -13,6 +13,7 @@ import MapPanel, {
 import { getPrimaryEntrance, getParkCodeFromName } from "@/lib/services/nationalParks";
 import { fetchAlertsForParks, type ParkAlert } from "@/lib/services/nps";
 import type { NationalPark } from "@/lib/types/nationalParks";
+import AuthModal from "@/components/auth/AuthModal";
 import {
   DndContext,
   closestCenter,
@@ -154,6 +155,11 @@ function ItineraryContent() {
   const datePickerRef = useRef<HTMLDivElement>(null);
   const [alerts, setAlerts] = useState<ParkAlert[]>([]);
   const [isLoadingAlerts, setIsLoadingAlerts] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // TODO: Replace with actual auth check from Supabase
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const logoutButtonRef = useRef<HTMLDivElement>(null);
 
   const minDate = new Date();
   const maxDate = new Date();
@@ -519,7 +525,7 @@ function ItineraryContent() {
         .sort()
         .slice(0, 8);
 
-  // Close park search and guest selector when clicking outside
+  // Close park search, guest selector, and logout confirmation when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -535,16 +541,22 @@ function ItineraryContent() {
       ) {
         setShowGuestSelector(false);
       }
+      if (
+        logoutButtonRef.current &&
+        !logoutButtonRef.current.contains(event.target as Node)
+      ) {
+        setShowLogoutConfirm(false);
+      }
     };
 
-    if (showAddPark || showGuestSelector) {
+    if (showAddPark || showGuestSelector || showLogoutConfirm) {
       document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showAddPark, showGuestSelector]);
+  }, [showAddPark, showGuestSelector, showLogoutConfirm]);
 
   const handleAddPark = (park: string) => {
     setParks([...parks, park]);
@@ -756,23 +768,86 @@ function ItineraryContent() {
 
         {/* Fixed bottom items */}
         <div className="flex-shrink-0 p-3 space-y-2 pt-4 border-t border-surface-divider">
-          {BOTTOM_ITEMS.map((item) => (
-            <button
-              key={item.id}
-              onClick={(e) => {
-                e.preventDefault();
-                if (item.href !== "#") {
-                  router.push(item.href);
-                } else {
-                  // Handle logout
-                  console.log("Logout clicked");
-                }
-              }}
-              className="px-2 py-2 rounded-lg cursor-pointer flex items-center text-left text-text-secondary hover:bg-surface-background w-full whitespace-nowrap"
-            >
-              <span className="text-base">{item.label}</span>
-            </button>
-          ))}
+          {/* Settings */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              router.push("/settings");
+            }}
+            className="px-2 py-2 rounded-lg cursor-pointer flex items-center text-left text-text-secondary hover:bg-surface-background w-full whitespace-nowrap"
+          >
+            <span className="text-base">Settings</span>
+          </button>
+          
+          {/* Support */}
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              router.push("/support");
+            }}
+            className="px-2 py-2 rounded-lg cursor-pointer flex items-center text-left text-text-secondary hover:bg-surface-background w-full whitespace-nowrap"
+          >
+            <span className="text-base">Support</span>
+          </button>
+          
+          {/* Sign up / Login / Logout */}
+          {isLoggedIn ? (
+            <>
+              <button
+                onClick={() => setShowLogoutConfirm(true)}
+                className="px-2 py-2 rounded-lg cursor-pointer flex items-center text-left text-text-secondary hover:bg-surface-background w-full whitespace-nowrap"
+              >
+                <span className="text-base">Logout</span>
+              </button>
+              {showLogoutConfirm && (
+                <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl border border-surface-divider shadow-xl p-4 w-64">
+                  <p className="text-sm md:text-base text-text-primary mb-4">
+                    Are you sure you want to logout?
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setIsLoggedIn(false);
+                        setShowLogoutConfirm(false);
+                        // TODO: Call Supabase auth.signOut() here
+                        console.log("User logged out");
+                      }}
+                      className="flex-1 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition text-sm md:text-base font-medium"
+                    >
+                      Yes, logout
+                    </button>
+                    <button
+                      onClick={() => setShowLogoutConfirm(false)}
+                      className="flex-1 bg-surface-background text-text-primary px-4 py-2 rounded-lg hover:bg-surface-divider transition text-sm md:text-base font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => {
+                  setAuthMode("signup");
+                  setIsAuthOpen(true);
+                }}
+                className="px-2 py-2 rounded-lg cursor-pointer flex items-center text-left text-text-secondary hover:bg-surface-background w-full whitespace-nowrap"
+              >
+                <span className="text-base">Sign up</span>
+              </button>
+              <button
+                onClick={() => {
+                  setAuthMode("login");
+                  setIsAuthOpen(true);
+                }}
+                className="px-2 py-2 rounded-lg cursor-pointer flex items-center text-left text-text-secondary hover:bg-surface-background w-full whitespace-nowrap"
+              >
+                <span className="text-base">Login</span>
+              </button>
+            </>
+          )}
         </div>
       </aside>
 
@@ -1312,6 +1387,69 @@ function ItineraryContent() {
           />
         </div>
       </div>
+
+      {/* Sign up / Logout Button - Bottom Left */}
+      <div className="fixed bottom-6 left-6 z-40" ref={logoutButtonRef}>
+        {isLoggedIn ? (
+          <>
+            <button
+              onClick={() => setShowLogoutConfirm(true)}
+              className="px-2 py-2 rounded-lg cursor-pointer flex items-center text-left text-text-secondary hover:bg-surface-background whitespace-nowrap"
+            >
+              <span className="text-base">Logout</span>
+            </button>
+            {showLogoutConfirm && (
+              <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl border border-surface-divider shadow-xl p-4 w-64">
+                <p className="text-sm md:text-base text-text-primary mb-4">
+                  Are you sure you want to logout?
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setIsLoggedIn(false);
+                      setShowLogoutConfirm(false);
+                      // TODO: Call Supabase auth.signOut() here
+                      console.log("User logged out");
+                    }}
+                    className="flex-1 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition text-sm md:text-base font-medium"
+                  >
+                    Yes, logout
+                  </button>
+                  <button
+                    onClick={() => setShowLogoutConfirm(false)}
+                    className="flex-1 bg-surface-background text-text-primary px-4 py-2 rounded-lg hover:bg-surface-divider transition text-sm md:text-base font-medium"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <button
+            onClick={() => {
+              setAuthMode("signup");
+              setIsAuthOpen(true);
+            }}
+            className="px-2 py-2 rounded-lg cursor-pointer flex items-center text-left text-text-secondary hover:bg-surface-background whitespace-nowrap"
+          >
+            <span className="text-base">Sign up</span>
+          </button>
+        )}
+      </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => {
+          setIsAuthOpen(false);
+          // TODO: When Supabase auth is implemented, check session here:
+          // const { data: { session } } = await supabase.auth.getSession();
+          // setIsLoggedIn(!!session);
+          // For now, mock implementation - user stays logged out until auth is implemented
+        }}
+        initialMode={authMode}
+      />
     </div>
   );
 }

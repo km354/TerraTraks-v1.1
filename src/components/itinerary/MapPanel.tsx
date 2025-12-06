@@ -236,16 +236,39 @@ export default function MapPanel({
     };
   }, []);
 
-  // Update map center when parks/activities change
+  // Fit map to show all markers when parks/activities/starting point change
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
 
-    mapRef.current.flyTo({
-      center: [mapCenter.lng, mapCenter.lat],
-      zoom: mapRef.current.getZoom(),
+    const allCoords: [number, number][] = [
+      ...(startingPoint ? [[startingPoint.lng, startingPoint.lat] as [number, number]] : []),
+      ...parks.map((p) => [p.lng, p.lat] as [number, number]),
+      ...activities.map((a) => [a.lng, a.lat] as [number, number]),
+    ];
+
+    if (allCoords.length === 0) {
+      // No markers, just center on default location
+      mapRef.current.flyTo({
+        center: [mapCenter.lng, mapCenter.lat],
+        zoom: 6,
+        duration: 1000,
+      });
+      return;
+    }
+
+    // Fit bounds to show all markers
+    const bounds = allCoords.reduce(
+      (bounds, coord) => {
+        return bounds.extend(coord);
+      },
+      new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
+    );
+
+    mapRef.current.fitBounds(bounds, {
+      padding: 80,
       duration: 1000,
     });
-  }, [mapCenter, mapLoaded]);
+  }, [parks, activities, startingPoint, mapCenter, mapLoaded]);
 
   // Add/update markers
   useEffect(() => {
@@ -270,13 +293,16 @@ export default function MapPanel({
       el.style.width = "48px";
       el.style.height = "48px";
       el.style.cursor = "pointer";
-      el.style.position = "relative";
+      el.style.margin = "0";
+      el.style.padding = "0";
+      el.style.display = "block";
       el.title = startingPoint.name;
       el.innerHTML = createStartingPointIcon();
 
       const marker = new mapboxgl.Marker({
         element: el,
         anchor: "bottom",
+        offset: [0, 0],
       })
         .setLngLat([startingPoint.lng, startingPoint.lat])
         .addTo(map);
@@ -297,7 +323,9 @@ export default function MapPanel({
       el.style.width = isSelected ? "56px" : "52px";
       el.style.height = isSelected ? "56px" : "52px";
       el.style.cursor = "pointer";
-      el.style.position = "relative";
+      el.style.margin = "0";
+      el.style.padding = "0";
+      el.style.display = "block";
       el.title = park.name + (park.day ? ` - Day ${park.day}` : "");
       
       // Insert SVG icon
@@ -306,6 +334,7 @@ export default function MapPanel({
       const marker = new mapboxgl.Marker({
         element: el,
         anchor: "bottom",
+        offset: [0, 0],
       })
         .setLngLat([park.lng, park.lat])
         .addTo(map);
@@ -390,15 +419,18 @@ export default function MapPanel({
             "line-cap": "round",
           },
           paint: {
-            "line-color": "#4285F4",
+            "line-color": "#1a56db",
             "line-width": 4,
-            "line-opacity": 0.6,
-            "line-dasharray": [2, 2],
+            "line-opacity": 0.8,
           },
         });
       } else {
-        map.setPaintProperty(layerId, "line-color", "#4285F4");
-        map.setPaintProperty(layerId, "line-opacity", 0.6);
+        map.setPaintProperty(layerId, "line-color", "#1a56db");
+        map.setPaintProperty(layerId, "line-opacity", 0.8);
+        // Remove dasharray if it exists (set to undefined to remove)
+        if (map.getPaintProperty(layerId, "line-dasharray")) {
+          map.setPaintProperty(layerId, "line-dasharray", undefined);
+        }
       }
 
       startingPointRouteLayerRef.current = layerId;
@@ -470,34 +502,46 @@ export default function MapPanel({
             "line-cap": "round",
           },
           paint: {
-            "line-color": "#4285F4",
+            "line-color": "#1a56db",
             "line-width": 4,
             "line-opacity": 0.8,
           },
         });
       } else {
         // Update paint properties if layer already exists to ensure blue color
-        map.setPaintProperty(layerId, "line-color", "#4285F4");
+        map.setPaintProperty(layerId, "line-color", "#1a56db");
         map.setPaintProperty(layerId, "line-opacity", 0.8);
+        // Remove dasharray if it exists (set to undefined to remove)
+        if (map.getPaintProperty(layerId, "line-dasharray")) {
+          map.setPaintProperty(layerId, "line-dasharray", undefined);
+        }
       }
 
       routeLayerRef.current = layerId;
 
-      // Fit map to route bounds
-      const coordinates = route.coordinates;
-      const bounds = coordinates.reduce(
-        (bounds, coord) => {
-          return bounds.extend([coord[0], coord[1]]);
-        },
-        new mapboxgl.LngLatBounds(coordinates[0], coordinates[0])
-      );
+      // Fit map to show all markers (parks, activities, starting point) and route
+      const allCoords: [number, number][] = [
+        ...route.coordinates,
+        ...selectedParks.map((p) => [p.lng, p.lat] as [number, number]),
+        ...activities.map((a) => [a.lng, a.lat] as [number, number]),
+        ...(startingPoint ? [[startingPoint.lng, startingPoint.lat] as [number, number]] : []),
+      ];
 
-      map.fitBounds(bounds, {
-        padding: 50,
-        duration: 1000,
-      });
+      if (allCoords.length > 0) {
+        const bounds = allCoords.reduce(
+          (bounds, coord) => {
+            return bounds.extend(coord);
+          },
+          new mapboxgl.LngLatBounds(allCoords[0], allCoords[0])
+        );
+
+        map.fitBounds(bounds, {
+          padding: 80,
+          duration: 1000,
+        });
+      }
     });
-  }, [visibleParks, mapLoaded]);
+  }, [visibleParks, activities, startingPoint, mapLoaded]);
 
   // Handle resize - both window and container size changes
   useEffect(() => {

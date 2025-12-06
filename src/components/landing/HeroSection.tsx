@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -19,17 +19,8 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-
-const ALL_PARKS = [
-  "Yellowstone National Park",
-  "Grand Canyon National Park",
-  "Zion National Park",
-  "Yosemite National Park",
-  "Rocky Mountain National Park",
-  "Grand Teton National Park",
-  "Glacier National Park",
-  "Acadia National Park",
-];
+import { getAllUniqueNationalParks, searchParksComprehensive } from "@/lib/services/nationalParks";
+import type { NationalPark } from "@/lib/types/nationalParks";
 
 interface SortableParkItemProps {
   park: string;
@@ -85,6 +76,10 @@ export default function HeroSection() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [showAllOptions, setShowAllOptions] = useState(false);
+  const [allParks, setAllParks] = useState<NationalPark[]>([]);
+  const [searchResults, setSearchResults] = useState<NationalPark[]>([]);
+  const [isLoadingParks, setIsLoadingParks] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -93,18 +88,64 @@ export default function HeroSection() {
     })
   );
 
-  const availableParks = ALL_PARKS.filter((p) => !selectedParks.includes(p));
+  // Load all parks on mount
+  useEffect(() => {
+    async function loadParks() {
+      setIsLoadingParks(true);
+      try {
+        const parks = await getAllUniqueNationalParks();
+        setAllParks(parks);
+      } catch (error) {
+        console.error("Error loading parks:", error);
+      } finally {
+        setIsLoadingParks(false);
+      }
+    }
+    loadParks();
+  }, []);
 
+  // Search parks when search term changes
+  useEffect(() => {
+    if (searchTerm.trim().length > 0) {
+      setIsSearching(true);
+      const timeoutId = setTimeout(async () => {
+        try {
+          const results = await searchParksComprehensive(searchTerm);
+          setSearchResults(results);
+        } catch (error) {
+          console.error("Error searching parks:", error);
+          setSearchResults([]);
+        } finally {
+          setIsSearching(false);
+        }
+      }, 200); // Debounce search
+
+      return () => {
+        clearTimeout(timeoutId);
+        setIsSearching(false);
+      };
+    } else {
+      setSearchResults([]);
+      setIsSearching(false);
+    }
+  }, [searchTerm]);
+
+  // Get park names from NationalPark objects
+  const allParkNames = useMemo(() => allParks.map(p => p.national_park_name), [allParks]);
+  const searchResultNames = useMemo(() => searchResults.map(p => p.national_park_name), [searchResults]);
+
+  // Filter out selected parks
+  const availableParks = allParkNames.filter((p) => !selectedParks.includes(p));
+  const availableSearchResults = searchResultNames.filter((p) => !selectedParks.includes(p));
+
+  // Determine options to show
   let options: string[];
-  if (searchTerm === "") {
+  if (searchTerm.trim() === "") {
+    // Show all parks when no search term
     options = showAllOptions ? availableParks : [];
   } else {
-    options = availableParks
-      .filter((park) =>
-        park.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-      .sort()
-      .slice(0, 8);
+    // Show search results
+    options = availableSearchResults.slice(0, 20);
   }
 
   const handleSelectPark = (park: string) => {
@@ -235,7 +276,7 @@ export default function HeroSection() {
             </div>
 
             {/* Show options only when input is focused/clicked */}
-            {isInputFocused && options.length > 0 && (
+            {isInputFocused && (
               <div 
                 className="absolute top-full w-full rounded-xl border border-surface-divider bg-white shadow-xl overflow-hidden z-20 max-h-64 overflow-y-auto"
                 style={{ overscrollBehavior: 'contain' }}
@@ -261,17 +302,31 @@ export default function HeroSection() {
                   }
                 }}
               >
-                {options.map((park) => (
-                  <button
-                    key={park}
-                    type="button"
-                    onClick={() => handleSelectPark(park)}
-                    onMouseDown={(e) => e.preventDefault()}
-                    className="w-full px-4 py-3 text-left hover:bg-surface-divider cursor-pointer text-base border-b border-surface-divider last:border-b-0"
-                  >
-                    {park}
-                  </button>
-                ))}
+                {isLoadingParks && searchTerm.trim() === "" ? (
+                  <div className="w-full px-4 py-3 text-center text-text-secondary text-base">
+                    Loading parks...
+                  </div>
+                ) : isSearching ? (
+                  <div className="w-full px-4 py-3 text-center text-text-secondary text-base">
+                    Searching...
+                  </div>
+                ) : options.length > 0 ? (
+                  options.map((park) => (
+                    <button
+                      key={park}
+                      type="button"
+                      onClick={() => handleSelectPark(park)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="w-full px-4 py-3 text-left hover:bg-surface-divider cursor-pointer text-base border-b border-surface-divider last:border-b-0"
+                    >
+                      {park}
+                    </button>
+                  ))
+                ) : searchTerm.trim().length > 0 ? (
+                  <div className="w-full px-4 py-3 text-center text-text-secondary text-base">
+                    No parks found
+                  </div>
+                ) : null}
               </div>
             )}
           </div>

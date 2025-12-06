@@ -75,6 +75,107 @@ export async function searchParksByName(
 }
 
 /**
+ * Comprehensive search across park name, state, and entrance name
+ * Returns unique parks (deduplicated by park_code)
+ */
+export async function searchParksComprehensive(
+  searchTerm: string
+): Promise<NationalPark[]> {
+  try {
+    if (!searchTerm || searchTerm.trim().length === 0) {
+      return [];
+    }
+
+    const searchLower = searchTerm.toLowerCase().trim();
+    
+    // Search across multiple fields using OR conditions
+    const { data, error } = await supabase
+      .from("national_parks")
+      .select("*")
+      .or(
+        `national_park_name.ilike.%${searchLower}%,state.ilike.%${searchLower}%,main_entrance_name.ilike.%${searchLower}%`
+      )
+      .order("national_park_name", { ascending: true })
+      .limit(100); // Get more results to deduplicate
+
+    if (error) {
+      console.error("Error searching parks comprehensively:", error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Deduplicate by park_code, keeping the first occurrence (prefer primary entrance if available)
+    const parkMap = new Map<string, NationalPark>();
+    
+    for (const park of data) {
+      const existing = parkMap.get(park.park_code);
+      
+      // If no existing park, or if this one has a primary entrance and existing doesn't
+      if (!existing || (park.primary_entrance_visitor_center && !existing.primary_entrance_visitor_center)) {
+        parkMap.set(park.park_code, park);
+      }
+    }
+
+    // Convert map values to array and sort
+    const uniqueParks = Array.from(parkMap.values()).sort((a, b) =>
+      a.national_park_name.localeCompare(b.national_park_name)
+    );
+
+    return uniqueParks;
+  } catch (error) {
+    console.error("Error searching parks comprehensively:", error);
+    return [];
+  }
+}
+
+/**
+ * Get all unique national parks (deduplicated by park_code)
+ * Useful for displaying all available parks
+ */
+export async function getAllUniqueNationalParks(): Promise<NationalPark[]> {
+  try {
+    const { data, error } = await supabase
+      .from("national_parks")
+      .select("*")
+      .order("national_park_name", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching all unique parks:", error);
+      return [];
+    }
+
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Deduplicate by park_code, keeping the first occurrence (prefer primary entrance if available)
+    const parkMap = new Map<string, NationalPark>();
+    
+    for (const park of data) {
+      const existing = parkMap.get(park.park_code);
+      
+      // If no existing park, or if this one has a primary entrance and existing doesn't
+      if (!existing || (park.primary_entrance_visitor_center && !existing.primary_entrance_visitor_center)) {
+        parkMap.set(park.park_code, park);
+      }
+    }
+
+    // Convert map values to array and sort
+    const uniqueParks = Array.from(parkMap.values()).sort((a, b) =>
+      a.national_park_name.localeCompare(b.national_park_name)
+    );
+
+    return uniqueParks;
+  } catch (error) {
+    console.error("Error fetching all unique parks:", error);
+    return [];
+  }
+}
+
+/**
  * Get primary entrance for a park (where primary_entrance_visitor_center is not null)
  */
 export async function getPrimaryEntrance(
