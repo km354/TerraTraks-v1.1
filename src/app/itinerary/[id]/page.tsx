@@ -11,6 +11,7 @@ import MapPanel, {
   ActivityMarker,
 } from "@/components/itinerary/MapPanel";
 import { getPrimaryEntrance, getParkCodeFromName } from "@/lib/services/nationalParks";
+import { fetchAlertsForParks, type ParkAlert } from "@/lib/services/nps";
 import type { NationalPark } from "@/lib/types/nationalParks";
 import {
   DndContext,
@@ -149,7 +150,25 @@ function ItineraryContent() {
   const guestSelectorRef = useRef<HTMLDivElement>(null);
   const [parkCoordinates, setParkCoordinates] = useState<Record<string, { lat: number; lng: number }>>({});
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [calendarPosition, setCalendarPosition] = useState({ left: 0, top: 0 });
   const datePickerRef = useRef<HTMLDivElement>(null);
+  const [alerts, setAlerts] = useState<ParkAlert[]>([]);
+  const [isLoadingAlerts, setIsLoadingAlerts] = useState(false);
+
+  const minDate = new Date();
+  const maxDate = new Date();
+  maxDate.setFullYear(maxDate.getFullYear() + 3);
+
+  // Calculate calendar position when it opens
+  useEffect(() => {
+    if (showDatePicker && datePickerRef.current) {
+      const rect = datePickerRef.current.getBoundingClientRect();
+      setCalendarPosition({
+        left: rect.right + 8,
+        top: rect.top
+      });
+    }
+  }, [showDatePicker]);
 
   // Prevent body scrolling on itinerary page
   useEffect(() => {
@@ -167,11 +186,41 @@ function ItineraryContent() {
     }
   }, [searchParams]);
 
+  // Fetch alerts when parks change
+  useEffect(() => {
+    const fetchParkAlerts = async () => {
+      if (parks.length === 0) {
+        setAlerts([]);
+        return;
+      }
+
+      setIsLoadingAlerts(true);
+      try {
+        // Convert park names to park codes
+        const parkCodes = parks.map((parkName) => getParkCodeFromName(parkName));
+        console.log("🔔 Fetching alerts for parks:", parks);
+        console.log("🔔 Converted to park codes:", parkCodes);
+        const parkAlerts = await fetchAlertsForParks(parkCodes);
+        console.log("✅ Received alerts:", parkAlerts);
+        setAlerts(parkAlerts);
+      } catch (error) {
+        console.error("❌ Error fetching alerts:", error);
+        setAlerts([]);
+      } finally {
+        setIsLoadingAlerts(false);
+      }
+    };
+
+    fetchParkAlerts();
+  }, [parks]);
+
   // Read preferences from URL params
   const pace = searchParams.get("pace") || "balanced";
   const drivingTime = searchParams.get("drivingTime") || "no-preference";
   const hikingTime = searchParams.get("hikingTime") || "no-preference";
   const startingPoint = searchParams.get("startingPoint") || "";
+  const startingPointLat = searchParams.get("startingPointLat");
+  const startingPointLng = searchParams.get("startingPointLng");
   const startDateStr = searchParams.get("startDate");
   const endDateStr = searchParams.get("endDate");
   
@@ -788,7 +837,10 @@ function ItineraryContent() {
                   {formattedDateRange}
                 </button>
                 {showDatePicker && (
-                  <div className="absolute z-50 mt-2 bg-white rounded-xl shadow-lg border border-surface-divider p-4">
+                  <div className="fixed z-[9999] bg-white rounded-xl shadow-lg border border-surface-divider p-4" style={{ 
+                    left: `${calendarPosition.left}px`,
+                    top: `${calendarPosition.top}px`
+                  }}>
                     <DatePicker
                       selected={dateRange[0]}
                       onChange={handleDateChange}
@@ -796,7 +848,8 @@ function ItineraryContent() {
                       endDate={dateRange[1]}
                       selectsRange
                       monthsShown={2}
-                      minDate={new Date()}
+                      minDate={minDate}
+                      maxDate={maxDate}
                       inline
                       calendarClassName="airbnb-calendar"
                       className="airbnb-calendar-wrapper"
@@ -1081,10 +1134,54 @@ function ItineraryContent() {
           <h2 className="text-2xl md:text-3xl font-semibold text-text-primary">
             Alerts & Permits
           </h2>
-          <div className="bg-white rounded-xl border border-surface-divider p-6">
-            <p className="text-sm md:text-base text-text-secondary">
-              Any closures, alerts, shuttle requirements, or permits will appear here.
-            </p>
+          <div className="bg-white rounded-xl border border-surface-divider p-6 space-y-4">
+            {isLoadingAlerts ? (
+              <p className="text-sm md:text-base text-text-secondary">
+                Loading alerts...
+              </p>
+            ) : alerts.length === 0 ? (
+              <p className="text-sm md:text-base text-text-secondary">
+                No alerts or closures at this time. Any closures, alerts, shuttle requirements, or permits will appear here.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {alerts.map((alert) => (
+                  <div
+                    key={alert.id}
+                    className="border-l-4 border-primary/50 bg-surface-background p-4 rounded-r-lg"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-base md:text-lg font-semibold text-text-primary">
+                            {alert.title}
+                          </h3>
+                          <span className="px-2 py-0.5 text-xs font-medium rounded bg-primary/10 text-primary">
+                            {alert.category}
+                          </span>
+                        </div>
+                        <p className="text-sm md:text-base text-text-secondary mb-2">
+                          {alert.description}
+                        </p>
+                        {alert.url && (
+                          <a
+                            href={alert.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                          >
+                            Learn more
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -1201,6 +1298,15 @@ function ItineraryContent() {
             parks={parkMarkers}
             activities={activityMarkers}
             selectedDay={selectedDay === "all" ? null : parseInt(selectedDay)}
+            startingPoint={
+              startingPoint && startingPointLat && startingPointLng
+                ? {
+                    name: startingPoint,
+                    lat: parseFloat(startingPointLat),
+                    lng: parseFloat(startingPointLng),
+                  }
+                : null
+            }
             onParkClick={handleParkClick}
             onActivityHover={handleActivityHover}
           />

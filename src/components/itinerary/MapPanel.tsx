@@ -80,10 +80,17 @@ export interface ActivityMarker {
   type: "hike" | "viewpoint" | "poi" | "other";
 }
 
+interface StartingPoint {
+  name: string;
+  lat: number;
+  lng: number;
+}
+
 interface MapPanelProps {
   parks: ParkMarker[];
   activities: ActivityMarker[];
   selectedDay?: number | null;
+  startingPoint?: StartingPoint | null;
   onParkClick?: (parkId: string) => void;
   onActivityHover?: (activityId: string | null) => void;
 }
@@ -107,29 +114,75 @@ const PARK_COORDINATES: Record<string, { lat: number; lng: number }> = {
   "Kings Canyon National Park": { lat: 36.8879, lng: -118.5551 },
 };
 
+// SVG icon for starting point marker
+const createStartingPointIcon = (): string => {
+  const size = 48;
+  const viewBoxSize = 32;
+  
+  return `
+    <svg width="${size}" height="${size}" viewBox="0 0 ${viewBoxSize} ${viewBoxSize}" fill="none" xmlns="http://www.w3.org/2000/svg" style="cursor: pointer; display: block;">
+      <!-- Outer pin -->
+      <path
+        d="M16 2.5C11.3 2.5 7.5 6.3 7.5 11C7.5 15.2 10.1 19.9 13.4 23.6C14.3 24.6 15.1 25.4 15.5 25.8C15.7 26 15.9 26.1 16.1 26.1C16.3 26.1 16.5 26 16.7 25.8C17.1 25.4 17.9 24.6 18.8 23.6C22.1 19.9 24.7 15.2 24.7 11C24.5 6.3 20.7 2.5 16 2.5Z"
+        fill="#4285F4"
+      />
+      <!-- Inner circle background -->
+      <circle
+        cx="16"
+        cy="11.2"
+        r="6.4"
+        fill="#FFFFFF"
+      />
+      <!-- Location pin icon -->
+      <path
+        d="M16 6.5C13.5 6.5 11.5 8.5 11.5 11C11.5 13.5 13.5 15.5 16 15.5C18.5 15.5 20.5 13.5 20.5 11C20.5 8.5 18.5 6.5 16 6.5ZM16 14C14.6 14 13.5 12.9 13.5 11.5C13.5 10.1 14.6 9 16 9C17.4 9 18.5 10.1 18.5 11.5C18.5 12.9 17.4 14 16 14Z"
+        fill="#4285F4"
+      />
+      <circle
+        cx="16"
+        cy="11"
+        r="2"
+        fill="#4285F4"
+      />
+      <!-- Small base shadow for stability -->
+      <ellipse
+        cx="16"
+        cy="27.2"
+        rx="4.4"
+        ry="1.4"
+        fill="rgba(0,0,0,0.12)"
+      />
+    </svg>
+  `;
+};
+
 export default function MapPanel({
   parks,
   activities,
   selectedDay,
+  startingPoint,
   onParkClick,
   onActivityHover,
 }: MapPanelProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<Map | null>(null);
   const markersRef = useRef<Marker[]>([]);
+  const startingPointMarkerRef = useRef<Marker | null>(null);
   const routeLayerRef = useRef<string | null>(null);
+  const startingPointRouteLayerRef = useRef<string | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
-  // Calculate map center from parks and activities
+  // Calculate map center from parks, activities, and starting point
   const mapCenter = useMemo(() => {
-    if (parks.length === 0 && activities.length === 0) {
-      return { lat: 44.4280, lng: -110.5885 }; // Default to Yellowstone
-    }
-
     const allCoords = [
+      ...(startingPoint ? [{ lat: startingPoint.lat, lng: startingPoint.lng }] : []),
       ...parks.map((p) => ({ lat: p.lat, lng: p.lng })),
       ...activities.map((a) => ({ lat: a.lat, lng: a.lng })),
     ];
+
+    if (allCoords.length === 0) {
+      return { lat: 44.4280, lng: -110.5885 }; // Default to Yellowstone
+    }
 
     const avgLat =
       allCoords.reduce((sum, c) => sum + c.lat, 0) / allCoords.length;
@@ -137,7 +190,7 @@ export default function MapPanel({
       allCoords.reduce((sum, c) => sum + c.lng, 0) / allCoords.length;
 
     return { lat: avgLat, lng: avgLng };
-  }, [parks, activities]);
+  }, [parks, activities, startingPoint]);
 
   // Activity markers are not displayed on the map
 
@@ -203,6 +256,33 @@ export default function MapPanel({
     // Clear existing markers
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current = [];
+    
+    // Clear starting point marker
+    if (startingPointMarkerRef.current) {
+      startingPointMarkerRef.current.remove();
+      startingPointMarkerRef.current = null;
+    }
+
+    // Add starting point marker
+    if (startingPoint) {
+      const el = document.createElement("div");
+      el.className = "starting-point-marker";
+      el.style.width = "48px";
+      el.style.height = "48px";
+      el.style.cursor = "pointer";
+      el.style.position = "relative";
+      el.title = startingPoint.name;
+      el.innerHTML = createStartingPointIcon();
+
+      const marker = new mapboxgl.Marker({
+        element: el,
+        anchor: "bottom",
+      })
+        .setLngLat([startingPoint.lng, startingPoint.lat])
+        .addTo(map);
+
+      startingPointMarkerRef.current = marker;
+    }
 
     // Add park markers
     visibleParks.forEach((park) => {
@@ -240,7 +320,90 @@ export default function MapPanel({
     });
 
     // Activity markers removed - not displaying on map
-  }, [visibleParks, selectedDay, mapLoaded, onParkClick]);
+  }, [visibleParks, selectedDay, startingPoint, mapLoaded, onParkClick]);
+
+  // Calculate and display route from starting point to first park
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded || !startingPoint) return;
+
+    const map = mapRef.current;
+    const selectedParks = visibleParks.filter((p) => p.isSelected);
+
+    // Remove existing starting point route layer
+    if (startingPointRouteLayerRef.current && map.getLayer(startingPointRouteLayerRef.current)) {
+      map.removeLayer(startingPointRouteLayerRef.current);
+    }
+    if (startingPointRouteLayerRef.current && map.getSource(startingPointRouteLayerRef.current)) {
+      map.removeSource(startingPointRouteLayerRef.current);
+    }
+
+    // Only show route from starting point to first park if we have at least one park
+    if (selectedParks.length < 1) {
+      startingPointRouteLayerRef.current = null;
+      return;
+    }
+
+    const firstPark = selectedParks[0];
+    const waypoints = [
+      { lat: startingPoint.lat, lng: startingPoint.lng },
+      { lat: firstPark.lat, lng: firstPark.lng },
+    ];
+
+    calculateRouteBetweenParks(waypoints).then((route) => {
+      if (!route || !mapRef.current) return;
+
+      const sourceId = "starting-point-route-source";
+      const layerId = "starting-point-route-layer";
+
+      // Add route source
+      if (map.getSource(sourceId)) {
+        (map.getSource(sourceId) as mapboxgl.GeoJSONSource).setData({
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: route.coordinates,
+          },
+        });
+      } else {
+        map.addSource(sourceId, {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "LineString",
+              coordinates: route.coordinates,
+            },
+          },
+        });
+      }
+
+      // Add route layer
+      if (!map.getLayer(layerId)) {
+        map.addLayer({
+          id: layerId,
+          type: "line",
+          source: sourceId,
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": "#4285F4",
+            "line-width": 4,
+            "line-opacity": 0.6,
+            "line-dasharray": [2, 2],
+          },
+        });
+      } else {
+        map.setPaintProperty(layerId, "line-color", "#4285F4");
+        map.setPaintProperty(layerId, "line-opacity", 0.6);
+      }
+
+      startingPointRouteLayerRef.current = layerId;
+    });
+  }, [startingPoint, visibleParks, mapLoaded]);
 
   // Calculate and display route between parks
   useEffect(() => {

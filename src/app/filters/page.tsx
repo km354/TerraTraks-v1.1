@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import DatePicker from "react-datepicker";
+import { searchPlaces, type GeocodingFeature } from "@/lib/services/mapboxGeocoding";
 import {
   DndContext,
   closestCenter,
@@ -115,6 +116,7 @@ function FiltersContent() {
   const searchParams = useSearchParams();
   const [tripParks, setTripParks] = useState<string[]>([]);
   const [startingPoint, setStartingPoint] = useState("");
+  const [startingPointFeature, setStartingPointFeature] = useState<GeocodingFeature | null>(null);
   const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([
     null,
     null,
@@ -132,8 +134,12 @@ function FiltersContent() {
   const [showAddPark, setShowAddPark] = useState(false);
   const [parkSearchTerm, setParkSearchTerm] = useState("");
   const [isParkInputFocused, setIsParkInputFocused] = useState(false);
+  const [startingPointSuggestions, setStartingPointSuggestions] = useState<GeocodingFeature[]>([]);
+  const [showStartingPointSuggestions, setShowStartingPointSuggestions] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const datePickerRef = useRef<HTMLDivElement>(null);
   const parkInputRef = useRef<HTMLDivElement>(null);
+  const startingPointRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -166,6 +172,80 @@ function FiltersContent() {
     }
   }, [searchParams]);
 
+  // Debounced search for starting point
+  const searchStartingPoint = useCallback(
+    async (query: string) => {
+      if (!query || query.trim().length < 2) {
+        setStartingPointSuggestions([]);
+        setShowStartingPointSuggestions(false);
+        return;
+      }
+
+      setIsLoadingSuggestions(true);
+      try {
+        const results = await searchPlaces(query, {
+          limit: 3, // Max 3 suggestions
+          types: "place,locality,neighborhood,address,poi,airport",
+        });
+        setStartingPointSuggestions(results);
+        setShowStartingPointSuggestions(true);
+      } catch (error) {
+        console.error("Error searching places:", error);
+        setStartingPointSuggestions([]);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    },
+    []
+  );
+
+  // Debounce timer for starting point search
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Handle starting point input change
+  const handleStartingPointChange = (value: string) => {
+    setStartingPoint(value);
+    // Clear the selected feature if user is typing
+    if (value !== startingPointFeature?.place_name) {
+      setStartingPointFeature(null);
+    }
+
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    // If there's text, search immediately (will debounce)
+    if (value.trim().length >= 2) {
+      searchTimeoutRef.current = setTimeout(() => {
+        searchStartingPoint(value);
+      }, 300);
+    } else {
+      // Clear suggestions if text is too short
+      setStartingPointSuggestions([]);
+      setShowStartingPointSuggestions(false);
+    }
+  };
+
+  // Handle starting point focus - show suggestions if there's existing text
+  const handleStartingPointFocus = () => {
+    if (startingPoint.trim().length >= 2) {
+      // If there's text, search immediately
+      searchStartingPoint(startingPoint);
+    } else if (startingPointSuggestions.length > 0) {
+      // If we have cached suggestions, show them
+      setShowStartingPointSuggestions(true);
+    }
+  };
+
+  // Handle starting point selection
+  const handleSelectStartingPoint = (feature: GeocodingFeature) => {
+    setStartingPoint(feature.place_name);
+    setStartingPointFeature(feature);
+    setStartingPointSuggestions([]);
+    setShowStartingPointSuggestions(false);
+  };
+
   // Close date picker when clicking outside or scrolling
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -182,15 +262,22 @@ function FiltersContent() {
         setIsParkInputFocused(false);
         setShowAddPark(false);
       }
+      if (
+        startingPointRef.current &&
+        !startingPointRef.current.contains(event.target as Node)
+      ) {
+        setShowStartingPointSuggestions(false);
+      }
     };
 
     const handleScroll = () => {
       setShowDatePicker(false);
+      setShowStartingPointSuggestions(false);
     };
 
-    if (showDatePicker || showAddPark) {
+    if (showDatePicker || showAddPark || showStartingPointSuggestions) {
       document.addEventListener("mousedown", handleClickOutside);
-      if (showDatePicker) {
+      if (showDatePicker || showStartingPointSuggestions) {
         window.addEventListener("scroll", handleScroll, true);
       }
     }
@@ -198,8 +285,11 @@ function FiltersContent() {
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       window.removeEventListener("scroll", handleScroll, true);
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
     };
-  }, [showDatePicker, showAddPark]);
+  }, [showDatePicker, showAddPark, showStartingPointSuggestions]);
 
   const handleRemovePark = (index: number) => {
     setTripParks(tripParks.filter((_, i) => i !== index));
@@ -243,7 +333,14 @@ function FiltersContent() {
     tripParks.forEach((park) => {
       params.append("parks", park);
     });
-    if (startingPoint) params.append("startingPoint", startingPoint);
+    if (startingPoint) {
+      params.append("startingPoint", startingPoint);
+      // Also pass coordinates if we have them
+      if (startingPointFeature) {
+        params.append("startingPointLng", startingPointFeature.center[0].toString());
+        params.append("startingPointLat", startingPointFeature.center[1].toString());
+      }
+    }
     if (dateRange[0]) params.append("startDate", dateRange[0].toISOString());
     if (dateRange[1]) params.append("endDate", dateRange[1].toISOString());
     params.append("pace", tripPace);
@@ -389,13 +486,65 @@ function FiltersContent() {
         <h2 className="text-xl md:text-2xl font-semibold text-text-primary">
           Where are you starting your trip?
         </h2>
-        <input
-          type="text"
-          value={startingPoint}
-          onChange={(e) => setStartingPoint(e.target.value)}
-          placeholder="City, airport, or address (e.g., Las Vegas, SLC Airport)"
-          className="w-full rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary"
-        />
+        <div className="relative" ref={startingPointRef}>
+          <div className="relative">
+            <input
+              type="text"
+              value={startingPoint}
+              onChange={(e) => handleStartingPointChange(e.target.value)}
+              onFocus={handleStartingPointFocus}
+              placeholder="City, airport, or address (e.g., Las Vegas, SLC Airport)"
+              className="w-full rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary"
+            />
+            {isLoadingSuggestions && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <svg
+                  className="animate-spin h-5 w-5 text-text-secondary"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+              </div>
+            )}
+          </div>
+
+          {showStartingPointSuggestions && startingPointSuggestions.length > 0 && (
+            <div className="absolute top-full mt-2 w-full rounded-xl border border-surface-divider bg-white shadow-xl overflow-hidden z-20 max-h-64 overflow-y-auto">
+              {startingPointSuggestions.map((feature) => (
+                <button
+                  key={feature.id}
+                  type="button"
+                  onClick={() => handleSelectStartingPoint(feature)}
+                  onMouseDown={(e) => e.preventDefault()}
+                  className="w-full px-4 py-3 text-left hover:bg-surface-divider cursor-pointer text-sm md:text-base border-b border-surface-divider last:border-b-0"
+                >
+                  <div className="font-medium text-text-primary">
+                    {feature.text}
+                  </div>
+                  {feature.place_name !== feature.text && (
+                    <div className="text-xs md:text-sm text-text-secondary mt-1">
+                      {feature.place_name}
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </section>
 
       {/* Dates Section */}
@@ -483,7 +632,7 @@ function FiltersContent() {
                 <label className="block text-sm md:text-base text-text-primary mb-3">
                   When are you planning to go?
                 </label>
-                <div className="space-y-2">
+                <div className="space-y-2 pr-2">
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <input
                       type="radio"
@@ -546,7 +695,7 @@ function FiltersContent() {
                 <label className="block text-sm md:text-base text-text-primary mb-3">
                   How long is your trip?
                 </label>
-                <div className="space-y-2">
+                <div className="space-y-2 pr-2">
                   <label className="flex items-center gap-3 cursor-pointer group">
                     <input
                       type="radio"
@@ -654,7 +803,7 @@ function FiltersContent() {
         <h2 className="text-xl md:text-2xl font-semibold text-text-primary">
           Preferences
         </h2>
-        <div className="space-y-6">
+        <div className="space-y-6 pr-2">
           <div>
             <label className="block text-sm md:text-base text-text-primary mb-3">
               Driving time per day:

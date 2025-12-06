@@ -88,24 +88,78 @@ export async function fetchParkInfo(
  * @param parkCode - NPS park code
  */
 export async function fetchAlerts(parkCode: string): Promise<ParkAlert[]> {
-  // TODO: Implement real NPS API call
-  // const apiKey = process.env.NPS_API_KEY;
-  // const response = await fetch(
-  //   `https://developer.nps.gov/api/v1/alerts?parkCode=${parkCode}&api_key=${apiKey}`
-  // );
-  // const data = await response.json();
-  // return data.data || [];
+  try {
+    const apiKey = process.env.NEXT_PUBLIC_NPS_API_KEY;
+    const url = apiKey
+      ? `https://developer.nps.gov/api/v1/alerts?parkCode=${parkCode}&api_key=${apiKey}`
+      : `https://developer.nps.gov/api/v1/alerts?parkCode=${parkCode}`;
+    
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'TerraTraks/1.0',
+      },
+    });
 
-  // Mock data for development
-  return [
-    {
-      id: "1",
-      title: "Road Closure",
-      description: "Some roads may be closed due to weather conditions.",
-      category: "Information",
+    if (!response.ok) {
+      console.error(`NPS API error for ${parkCode}:`, response.status, response.statusText);
+      return [];
+    }
+
+    const data = await response.json();
+    return (data.data || []).map((alert: any) => ({
+      id: alert.id,
+      title: alert.title,
+      description: alert.description || alert.title,
+      category: alert.category || "Information",
+      url: alert.url,
       parkCode: parkCode.toLowerCase(),
-    },
-  ];
+    }));
+  } catch (error) {
+    console.error(`Error fetching alerts for ${parkCode}:`, error);
+    return [];
+  }
+}
+
+/**
+ * Fetch alerts for multiple parks using Next.js API route (recommended)
+ * @param parkCodes - Array of NPS park codes
+ */
+export async function fetchAlertsForParks(parkCodes: string[]): Promise<ParkAlert[]> {
+  if (parkCodes.length === 0) {
+    return [];
+  }
+
+  try {
+    // Use Next.js API route to avoid CORS and keep API key secure
+    const params = new URLSearchParams();
+    parkCodes.forEach((code) => params.append("parkCode", code));
+    
+    const apiUrl = `/api/nps/alerts?${params.toString()}`;
+    console.log("🔔 Calling NPS alerts API:", apiUrl);
+    
+    const response = await fetch(apiUrl, {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ Error fetching alerts from API route:", response.status, response.statusText, errorText);
+      return [];
+    }
+
+    const data = await response.json();
+    console.log("✅ Received alerts data:", data);
+    const alerts = data.data || [];
+    console.log(`✅ Parsed ${alerts.length} alerts`);
+    
+    return alerts;
+  } catch (error) {
+    console.error("❌ Error fetching alerts for parks:", error);
+    return [];
+  }
 }
 
 /**
