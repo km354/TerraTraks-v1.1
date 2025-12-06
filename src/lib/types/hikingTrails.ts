@@ -11,3 +11,4 @@ export interface HikingTrail {
   updated_at: string;
 }
 
+

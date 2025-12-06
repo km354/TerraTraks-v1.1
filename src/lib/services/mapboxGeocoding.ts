@@ -49,7 +49,8 @@ export async function searchPlaces(
   options: {
     limit?: number;
     proximity?: [number, number]; // [lng, lat] - bias results towards this location
-    types?: string; // Comma-separated list: country,region,postcode,district,place,locality,neighborhood,address,poi
+    types?: string; // Comma-separated list: country,region,postcode,district,place,locality,neighborhood,address
+    country?: string; // ISO 3166-1 alpha-2 country code (e.g., "us")
   } = {}
 ): Promise<GeocodingFeature[]> {
   const token = process.env.NEXT_PUBLIC_MAPBOX_PUBLIC_TOKEN;
@@ -62,7 +63,7 @@ export async function searchPlaces(
   const trimmed = query.trim();
 
   // Optional: ignore very short/empty input
-  if (trimmed.length < 2) {
+  if (trimmed.length < 1) {
     return [];
   }
 
@@ -74,8 +75,9 @@ export async function searchPlaces(
     const url = `${MAPBOX_BASE_URL}/${encodedQuery}.json?` +
       `access_token=${token}` +
       `&limit=${options.limit || 3}` +
-      (options.types ? `&types=${options.types}` : "&types=place,locality,neighborhood,address,poi,airport") +
-      (options.proximity ? `&proximity=${options.proximity[0]},${options.proximity[1]}` : "");
+      (options.types ? `&types=${options.types}` : "&types=place,locality,neighborhood,address,district") +
+      (options.proximity ? `&proximity=${options.proximity[0]},${options.proximity[1]}` : "") +
+      (options.country ? `&country=${options.country}` : "");
 
     const response = await fetch(url);
 

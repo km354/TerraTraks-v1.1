@@ -61,6 +61,52 @@ const ALL_PARKS = [
   "Kings Canyon National Park",
 ];
 
+// Popular US starting locations for trip planning
+const POPULAR_STARTING_LOCATIONS: GeocodingFeature[] = [
+  {
+    id: "popular-las-vegas",
+    type: "Feature",
+    place_type: ["place"],
+    relevance: 1,
+    properties: {},
+    text: "Las Vegas",
+    place_name: "Las Vegas, Nevada, United States",
+    center: [-115.1372, 36.1699],
+    geometry: {
+      type: "Point",
+      coordinates: [-115.1372, 36.1699],
+    },
+  },
+  {
+    id: "popular-salt-lake-city",
+    type: "Feature",
+    place_type: ["place"],
+    relevance: 1,
+    properties: {},
+    text: "Salt Lake City",
+    place_name: "Salt Lake City, Utah, United States",
+    center: [-111.8910, 40.7608],
+    geometry: {
+      type: "Point",
+      coordinates: [-111.8910, 40.7608],
+    },
+  },
+  {
+    id: "popular-phoenix",
+    type: "Feature",
+    place_type: ["place"],
+    relevance: 1,
+    properties: {},
+    text: "Phoenix",
+    place_name: "Phoenix, Arizona, United States",
+    center: [-112.0740, 33.4484],
+    geometry: {
+      type: "Point",
+      coordinates: [-112.0740, 33.4484],
+    },
+  },
+];
+
 interface SortableParkItemProps {
   park: string;
   index: number;
@@ -172,10 +218,31 @@ function FiltersContent() {
     }
   }, [searchParams]);
 
+  // Filter out invalid suggestions (like "745n" or other non-place results)
+  const filterValidSuggestions = useCallback((results: GeocodingFeature[]): GeocodingFeature[] => {
+    return results.filter((feature) => {
+      const text = feature.text || "";
+      const placeName = feature.place_name || "";
+      
+      // Filter out results that are:
+      // 1. Just numbers or mostly numbers (like "745n")
+      // 2. Too short (less than 2 characters)
+      // 3. Only contain numbers and single letters
+      // 4. Don't contain at least one letter
+      
+      const hasLetter = /[a-zA-Z]/.test(text);
+      const isMostlyNumbers = /^\d+[a-z]?$/i.test(text.trim());
+      const isTooShort = text.trim().length < 2;
+      const isValidPlaceName = hasLetter && !isMostlyNumbers && !isTooShort;
+      
+      return isValidPlaceName;
+    });
+  }, []);
+
   // Debounced search for starting point
   const searchStartingPoint = useCallback(
     async (query: string) => {
-      if (!query || query.trim().length < 2) {
+      if (!query || query.trim().length < 1) {
         setStartingPointSuggestions([]);
         setShowStartingPointSuggestions(false);
         return;
@@ -184,10 +251,14 @@ function FiltersContent() {
       setIsLoadingSuggestions(true);
       try {
         const results = await searchPlaces(query, {
-          limit: 3, // Max 3 suggestions
-          types: "place,locality,neighborhood,address,poi,airport",
+          limit: 15, // Fetch up to 15 results for scrolling
+          types: "place,locality,neighborhood,address,district",
+          country: "us", // Limit to USA only
         });
-        setStartingPointSuggestions(results);
+        
+        // Filter out invalid suggestions
+        const validResults = filterValidSuggestions(results);
+        setStartingPointSuggestions(validResults);
         setShowStartingPointSuggestions(true);
       } catch (error) {
         console.error("Error searching places:", error);
@@ -196,7 +267,7 @@ function FiltersContent() {
         setIsLoadingSuggestions(false);
       }
     },
-    []
+    [filterValidSuggestions]
   );
 
   // Debounce timer for starting point search
@@ -216,24 +287,25 @@ function FiltersContent() {
     }
 
     // If there's text, search immediately (will debounce)
-    if (value.trim().length >= 2) {
+    if (value.trim().length >= 1) {
       searchTimeoutRef.current = setTimeout(() => {
         searchStartingPoint(value);
       }, 300);
     } else {
-      // Clear suggestions if text is too short
-      setStartingPointSuggestions([]);
-      setShowStartingPointSuggestions(false);
+      // If empty, show popular locations
+      setStartingPointSuggestions(POPULAR_STARTING_LOCATIONS);
+      setShowStartingPointSuggestions(true);
     }
   };
 
-  // Handle starting point focus - show suggestions if there's existing text
+  // Handle starting point focus - show popular locations or search results
   const handleStartingPointFocus = () => {
-    if (startingPoint.trim().length >= 2) {
+    if (startingPoint.trim().length >= 1) {
       // If there's text, search immediately
       searchStartingPoint(startingPoint);
-    } else if (startingPointSuggestions.length > 0) {
-      // If we have cached suggestions, show them
+    } else {
+      // If empty, show popular US locations
+      setStartingPointSuggestions(POPULAR_STARTING_LOCATIONS);
       setShowStartingPointSuggestions(true);
     }
   };
@@ -270,14 +342,21 @@ function FiltersContent() {
       }
     };
 
-    const handleScroll = () => {
+    const handleScroll = (event: Event) => {
+      // Only close date picker on scroll, not starting point suggestions
+      // Check if scroll is happening inside the starting point dropdown
+      const target = event.target as Node;
+      if (startingPointRef.current?.contains(target)) {
+        // Don't close if scrolling inside the dropdown
+        return;
+      }
       setShowDatePicker(false);
-      setShowStartingPointSuggestions(false);
+      // Don't close starting point suggestions on scroll
     };
 
     if (showDatePicker || showAddPark || showStartingPointSuggestions) {
       document.addEventListener("mousedown", handleClickOutside);
-      if (showDatePicker || showStartingPointSuggestions) {
+      if (showDatePicker) {
         window.addEventListener("scroll", handleScroll, true);
       }
     }
@@ -523,7 +602,34 @@ function FiltersContent() {
           </div>
 
           {showStartingPointSuggestions && startingPointSuggestions.length > 0 && (
-            <div className="absolute top-full mt-2 w-full rounded-xl border border-surface-divider bg-white shadow-xl overflow-hidden z-20 max-h-64 overflow-y-auto">
+            <div 
+              className="absolute top-full mt-2 w-full rounded-xl border border-surface-divider bg-white shadow-xl overflow-hidden z-20 max-h-64 overflow-y-auto"
+              onWheel={(e) => {
+                // Prevent page scroll when scrolling inside dropdown
+                e.stopPropagation();
+                const element = e.currentTarget;
+                const { scrollTop, scrollHeight, clientHeight } = element;
+                const isAtTop = scrollTop === 0;
+                const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+                
+                // Prevent page scroll when at boundaries
+                if ((isAtTop && e.deltaY < 0) || (isAtBottom && e.deltaY > 0)) {
+                  e.preventDefault();
+                }
+              }}
+              onTouchMove={(e) => {
+                // Prevent page scroll on touch devices
+                const element = e.currentTarget;
+                const { scrollTop, scrollHeight, clientHeight } = element;
+                const isAtTop = scrollTop === 0;
+                const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1;
+                
+                if (isAtTop || isAtBottom) {
+                  e.stopPropagation();
+                }
+              }}
+              style={{ overscrollBehavior: 'contain' }}
+            >
               {startingPointSuggestions.map((feature) => (
                 <button
                   key={feature.id}
