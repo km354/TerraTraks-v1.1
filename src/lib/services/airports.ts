@@ -16,8 +16,8 @@ export async function searchAirports(query: string): Promise<Airport[]> {
     const codeQuery = supabase
       .from("airports")
       .select("*")
-      .ilike("code", `%${searchTerm}%`)
-      .order("code", { ascending: true })
+      .ilike("iata_code", `%${searchTerm}%`)
+      .order("iata_code", { ascending: true })
       .limit(10);
 
     // Search by name (partial match)
