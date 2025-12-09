@@ -68,6 +68,12 @@ export default function AddActivityDrawer({
   });
   const [requiresPermit, setRequiresPermit] = useState(false);
   const [requiresShuttle, setRequiresShuttle] = useState(false);
+  const [showCustomForm, setShowCustomForm] = useState(false);
+  const [customActivityName, setCustomActivityName] = useState("");
+  const [customActivityType, setCustomActivityType] = useState<Activity["type"]>("activity");
+  const [customLinkUrl, setCustomLinkUrl] = useState("");
+  const [customDuration, setCustomDuration] = useState("");
+  const [customTime, setCustomTime] = useState("");
 
   // Fetch hiking trails from Supabase when parks change
   useEffect(() => {
@@ -236,6 +242,42 @@ export default function AddActivityDrawer({
     onAddActivity(activity);
   };
 
+  const handleSaveCustomActivity = () => {
+    if (!customActivityName.trim()) {
+      return; // Don't save if name is empty
+    }
+
+    const customActivity: Activity = {
+      id: `custom-${Date.now()}`,
+      title: customActivityName,
+      tagline: customActivityType.charAt(0).toUpperCase() + customActivityType.slice(1),
+      difficulty: "moderate", // Default difficulty
+      type: customActivityType,
+      requiresPermit: false,
+      requiresShuttle: false,
+      linkUrl: customLinkUrl || undefined,
+    };
+
+    onAddActivity(customActivity);
+    
+    // Reset form
+    setCustomActivityName("");
+    setCustomActivityType("activity");
+    setCustomLinkUrl("");
+    setCustomDuration("");
+    setCustomTime("");
+    setShowCustomForm(false);
+  };
+
+  const handleCancelCustomActivity = () => {
+    setCustomActivityName("");
+    setCustomActivityType("activity");
+    setCustomLinkUrl("");
+    setCustomDuration("");
+    setCustomTime("");
+    setShowCustomForm(false);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -373,6 +415,110 @@ export default function AddActivityDrawer({
               className="flex-1 rounded-xl border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:border-secondary"
             />
           </div>
+
+          {/* Add Custom Activity Button */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowCustomForm(!showCustomForm)}
+              className="w-full px-4 py-2 rounded-lg bg-primary text-white text-sm md:text-base font-medium hover:bg-primary-dark transition"
+            >
+              Add activity
+            </button>
+          </div>
+
+          {/* Custom Activity Form */}
+          {showCustomForm && (
+            <div className="space-y-4 p-4 border border-surface-divider rounded-xl bg-surface-background">
+              <div>
+                <label className="block text-sm md:text-base font-medium text-text-primary mb-2">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={customActivityName}
+                  onChange={(e) => setCustomActivityName(e.target.value)}
+                  placeholder="Enter activity name"
+                  className="w-full rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm md:text-base font-medium text-text-primary mb-2">
+                  Type of activity <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={customActivityType}
+                  onChange={(e) => setCustomActivityType(e.target.value as Activity["type"])}
+                  className="w-full rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary bg-white"
+                >
+                  <option value="hike">Hike</option>
+                  <option value="viewpoint">Viewpoint</option>
+                  <option value="scenic-drive">Scenic Drive</option>
+                  <option value="activity">Activity</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm md:text-base font-medium text-text-primary mb-2">
+                  Link (optional)
+                </label>
+                <input
+                  type="url"
+                  value={customLinkUrl}
+                  onChange={(e) => setCustomLinkUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm md:text-base font-medium text-text-primary mb-2">
+                    Duration (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={customDuration}
+                    onChange={(e) => setCustomDuration(e.target.value)}
+                    placeholder="e.g., 2 hours"
+                    className="w-full rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm md:text-base font-medium text-text-primary mb-2">
+                    Time (optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={customTime}
+                    onChange={(e) => setCustomTime(e.target.value)}
+                    placeholder="e.g., 9:00 AM"
+                    className="w-full rounded-lg border border-surface-divider px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={handleSaveCustomActivity}
+                  disabled={!customActivityName.trim()}
+                  className="flex-1 px-4 py-2 rounded-lg bg-primary text-white text-sm md:text-base font-medium hover:bg-primary-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Save activity
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelCustomActivity}
+                  className="flex-1 px-4 py-2 rounded-lg bg-surface-background text-text-primary text-sm md:text-base font-medium hover:bg-surface-divider transition border border-surface-divider"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Results List */}
           <div className="space-y-2">

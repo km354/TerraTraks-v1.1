@@ -1098,7 +1098,7 @@ function FiltersContent() {
                 <label className="block text-sm md:text-base text-text-primary mb-3">
                   When are you planning to go?
                 </label>
-                <div className="space-y-2 pr-2 overflow-visible">
+                <div className="space-y-2 pr-2">
                   <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                     <input
                       type="radio"
@@ -1161,7 +1161,7 @@ function FiltersContent() {
                 <label className="block text-sm md:text-base text-text-primary mb-3">
                   How long is your trip?
                 </label>
-                <div className="space-y-2 pr-2 overflow-visible">
+                <div className="space-y-2 pr-2">
                   <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                     <input
                       type="radio"
@@ -1269,12 +1269,12 @@ function FiltersContent() {
         <h2 className="text-xl md:text-2xl font-semibold text-text-primary">
           Preferences
         </h2>
-        <div className="space-y-6 pr-4 overflow-visible">
+        <div className="space-y-6 pr-2">
           <div>
             <label className="block text-sm md:text-base text-text-primary mb-3">
               Driving time per day:
             </label>
-            <div className="space-y-2 overflow-visible">
+            <div className="space-y-2">
               <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                 <input
                   type="radio"
@@ -1325,7 +1325,7 @@ function FiltersContent() {
             <label className="block text-sm md:text-base text-text-primary mb-3">
               Hiking time:
             </label>
-            <div className="space-y-2 overflow-visible">
+            <div className="space-y-2">
               <label className="flex items-center gap-3 cursor-pointer group overflow-visible">
                 <input
                   type="radio"

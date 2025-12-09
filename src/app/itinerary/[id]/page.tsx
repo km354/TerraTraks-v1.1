@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, Suspense, useMemo } from "react";
+import { useState, useEffect, useRef, Suspense, useMemo, useCallback } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import DatePicker from "react-datepicker";
 import AddActivityDrawer, {
@@ -35,7 +35,34 @@ const SIDEBAR_ITEMS = [
   { id: "overview", label: "Trip Overview", sectionId: "section-overview" },
   { id: "parks", label: "Parks", sectionId: "section-parks" },
   { id: "alerts", label: "Alerts & Permits", sectionId: "section-alerts" },
+  { id: "accommodation", label: "Accommodation", sectionId: "section-accommodation" },
 ];
+
+// Park tier system for day allocation
+const PARK_TIERS: Record<string, "A" | "B" | "C"> = {
+  // Tier A: Major, iconic parks (2-3 days default)
+  "Yellowstone National Park": "A",
+  "Grand Canyon National Park": "A",
+  "Yosemite National Park": "A",
+  "Zion National Park": "A",
+  "Glacier National Park": "A",
+  "Rocky Mountain National Park": "A",
+  "Great Smoky Mountains National Park": "A",
+  "Olympic National Park": "A",
+  "Sequoia National Park": "A",
+  "Kings Canyon National Park": "A",
+  "Grand Teton National Park": "A",
+  "Arches National Park": "A",
+  "Canyonlands National Park": "A",
+  "Bryce Canyon National Park": "A",
+  "Capitol Reef National Park": "A",
+  // Tier B: Medium complexity (1.5-2 days default)
+  "Acadia National Park": "B",
+  "Badlands National Park": "B",
+  "Crater Lake National Park": "B",
+  // Tier C: Small, quick highlights (1 day default)
+  // All other parks default to Tier C
+};
 
 const BOTTOM_ITEMS = [
   { id: "settings", label: "Settings", href: "/settings" },
@@ -69,6 +96,7 @@ type ItineraryActivity = {
   day: number;
   park?: string;
   linkUrl?: string;
+  description?: string;
   requiresPermit?: boolean;
   requiresShuttle?: boolean;
 };
@@ -76,10 +104,14 @@ type ItineraryActivity = {
 interface SortableParkItemProps {
   park: string;
   index: number;
+  days: number;
   onRemove: () => void;
+  onDaysChange: (days: number) => void;
+  canDecrease: boolean;
+  canIncrease: boolean;
 }
 
-function SortableParkItem({ park, index, onRemove }: SortableParkItemProps) {
+function SortableParkItem({ park, index, days, onRemove, onDaysChange, canDecrease, canIncrease }: SortableParkItemProps) {
   const {
     attributes,
     listeners,
@@ -111,6 +143,43 @@ function SortableParkItem({ park, index, onRemove }: SortableParkItemProps) {
       <span className="flex-1 text-sm md:text-base text-text-primary">
         {park}
       </span>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (canDecrease && days > 1) {
+              onDaysChange(days - 1);
+            }
+          }}
+          disabled={!canDecrease || days <= 1}
+          className="w-7 h-7 rounded-lg border border-surface-divider bg-white hover:bg-surface-background disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-text-primary transition"
+          aria-label={`Decrease days for ${park}`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+          </svg>
+        </button>
+        <span className="text-sm md:text-base text-text-primary font-medium min-w-[3rem] text-center">
+          {days} {days === 1 ? "day" : "days"}
+        </span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (canIncrease) {
+              onDaysChange(days + 1);
+            }
+          }}
+          disabled={!canIncrease}
+          className="w-7 h-7 rounded-lg border border-surface-divider bg-white hover:bg-surface-background disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-text-primary transition"
+          aria-label={`Increase days for ${park}`}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
+      </div>
       <button
         type="button"
         onClick={onRemove}
@@ -158,8 +227,8 @@ function ItineraryContent() {
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "signup">("signup");
   const [isLoggedIn, setIsLoggedIn] = useState(false); // TODO: Replace with actual auth check from Supabase
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const logoutButtonRef = useRef<HTMLDivElement>(null);
+  const [openAccommodationDropdown, setOpenAccommodationDropdown] = useState<string | null>(null);
+  const accommodationDropdownRef = useRef<HTMLDivElement>(null);
 
   const minDate = new Date();
   const maxDate = new Date();
@@ -280,6 +349,25 @@ function ItineraryContent() {
       };
     }
   }, [showDatePicker]);
+
+  // Close accommodation dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        accommodationDropdownRef.current &&
+        !accommodationDropdownRef.current.contains(event.target as Node)
+      ) {
+        setOpenAccommodationDropdown(null);
+      }
+    };
+    
+    if (openAccommodationDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => {
+        document.removeEventListener("mousedown", handleClickOutside);
+      };
+    }
+  }, [openAccommodationDropdown]);
   
   // Calculate number of days from date range
   const numberOfDays = useMemo(() => {
@@ -317,6 +405,33 @@ function ItineraryContent() {
     return "Balanced";
   }, [pace]);
 
+  // Handle park days adjustment
+  const handleParkDaysChange = useCallback((park: string, newDays: number) => {
+    setParkDays((prev) => {
+      const updated = { ...prev, [park]: newDays };
+      const currentTotal = Object.values(updated).reduce((sum, days) => sum + days, 0);
+      const diff = numberOfDays - currentTotal;
+      
+      if (diff !== 0) {
+        // Auto-adjust other parks
+        const otherParks = parks.filter(p => p !== park);
+        if (otherParks.length > 0) {
+          const sortedOtherParks = [...otherParks].sort((a, b) => updated[b] - updated[a]);
+          for (let i = 0; i < Math.abs(diff); i++) {
+            const adjustPark = sortedOtherParks[i % sortedOtherParks.length];
+            if (diff > 0) {
+              updated[adjustPark] = (updated[adjustPark] || 1) + 1;
+            } else if (updated[adjustPark] > 1) {
+              updated[adjustPark] -= 1;
+            }
+          }
+        }
+      }
+      
+      return updated;
+    });
+  }, [parks, numberOfDays]);
+
   // Drag and drop sensors
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -336,42 +451,80 @@ function ItineraryContent() {
       });
     }
   };
-  const [activities, setActivities] = useState<ItineraryActivity[]>([
-    {
-      id: "1",
-      name: "Old Faithful",
-      type: "viewpoint",
-      day: 1,
-      park: "Yellowstone National Park",
-      linkUrl: "https://www.nps.gov/yell/planyourvisit/oldfaithful.htm",
-    },
-    {
-      id: "2",
-      name: "Grand Prismatic Spring",
-      type: "viewpoint",
-      day: 1,
-      park: "Yellowstone National Park",
-      linkUrl: "https://www.nps.gov/yell/planyourvisit/grandprismaticspring.htm",
-    },
-    {
-      id: "3",
-      name: "Yellowstone Lake",
-      type: "poi",
-      day: 2,
-      park: "Yellowstone National Park",
-    },
-    {
-      id: "4",
-      name: "Lamar Valley",
-      type: "viewpoint",
-      day: 2,
-      park: "Yellowstone National Park",
-    },
-  ]);
+  const [activities, setActivities] = useState<ItineraryActivity[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedDayForActivities, setSelectedDayForActivities] = useState<number | null>(null);
+  const [parkDays, setParkDays] = useState<Record<string, number>>({});
+  const [selectedActivity, setSelectedActivity] = useState<ItineraryActivity | null>(null);
+  const activityModalRef = useRef<HTMLDivElement>(null);
 
   const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
+
+  // Calculate initial days per park using weighted formula
+  const calculateParkDays = useCallback((parksList: string[], totalDays: number, activitiesList: ItineraryActivity[], tripPace: string) => {
+    if (parksList.length === 0) return {};
+    
+    // Count activities per park
+    const activitiesPerPark: Record<string, number> = {};
+    parksList.forEach(park => {
+      activitiesPerPark[park] = activitiesList.filter(a => a.park === park).length;
+    });
+    
+    // Calculate base days from tier
+    const baseDays: Record<string, number> = {};
+    parksList.forEach(park => {
+      const tier = PARK_TIERS[park] || "C";
+      if (tier === "A") {
+        baseDays[park] = 2.5; // Default 2-3 days, use 2.5 as starting point
+      } else if (tier === "B") {
+        baseDays[park] = 1.75; // Default 1.5-2 days
+      } else {
+        baseDays[park] = 1; // Tier C: 1 day
+      }
+    });
+    
+    // Adjust based on activities (highest weight)
+    const maxActivities = Math.max(...Object.values(activitiesPerPark), 1);
+    parksList.forEach(park => {
+      const activityCount = activitiesPerPark[park];
+      if (activityCount > 0) {
+        // More activities = more days needed
+        const activityMultiplier = 1 + (activityCount / maxActivities) * 0.5;
+        baseDays[park] *= activityMultiplier;
+      }
+    });
+    
+    // Adjust based on trip pace (high weight)
+    const paceMultiplier = tripPace === "relaxed" ? 1.2 : tripPace === "packed" ? 0.9 : 1.0;
+    parksList.forEach(park => {
+      baseDays[park] *= paceMultiplier;
+    });
+    
+    // Normalize to total days
+    const totalBaseDays = Object.values(baseDays).reduce((sum, days) => sum + days, 0);
+    const normalizedDays: Record<string, number> = {};
+    parksList.forEach(park => {
+      normalizedDays[park] = Math.max(1, Math.round((baseDays[park] / totalBaseDays) * totalDays));
+    });
+    
+    // Ensure total equals totalDays (adjust if needed)
+    const currentTotal = Object.values(normalizedDays).reduce((sum, days) => sum + days, 0);
+    if (currentTotal !== totalDays) {
+      const diff = totalDays - currentTotal;
+      // Adjust the largest park(s) to make up the difference
+      const sortedParks = [...parksList].sort((a, b) => normalizedDays[b] - normalizedDays[a]);
+      for (let i = 0; i < Math.abs(diff); i++) {
+        const park = sortedParks[i % sortedParks.length];
+        if (diff > 0) {
+          normalizedDays[park] += 1;
+        } else if (normalizedDays[park] > 1) {
+          normalizedDays[park] -= 1;
+        }
+      }
+    }
+    
+    return normalizedDays;
+  }, []);
 
   // Get unique days from activities - use numberOfDays if no activities
   const availableDays = useMemo(() => {
@@ -525,7 +678,7 @@ function ItineraryContent() {
         .sort()
         .slice(0, 8);
 
-  // Close park search, guest selector, and logout confirmation when clicking outside
+  // Close park search and guest selector when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -541,22 +694,16 @@ function ItineraryContent() {
       ) {
         setShowGuestSelector(false);
       }
-      if (
-        logoutButtonRef.current &&
-        !logoutButtonRef.current.contains(event.target as Node)
-      ) {
-        setShowLogoutConfirm(false);
-      }
     };
 
-    if (showAddPark || showGuestSelector || showLogoutConfirm) {
+    if (showAddPark || showGuestSelector) {
       document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showAddPark, showGuestSelector, showLogoutConfirm]);
+  }, [showAddPark, showGuestSelector]);
 
   const handleAddPark = (park: string) => {
     setParks([...parks, park]);
@@ -715,38 +862,25 @@ function ItineraryContent() {
     <div className="fixed inset-0 top-[5rem] flex flex-col md:flex-row gap-0 overflow-hidden">
       {/* Sidebar */}
       <aside className="w-full md:w-[173px] flex-shrink-0 border-r border-surface-divider bg-white h-full overflow-hidden flex flex-col">
-        {/* Scrollable sidebar items */}
+        {/* Fixed top section - Main navigation items */}
+        <div className="flex-shrink-0 p-3 space-y-2 text-sm border-b border-surface-divider">
+          {SIDEBAR_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => handleSidebarClick(item.sectionId)}
+              className={`px-2 py-2 rounded-lg cursor-pointer flex items-center text-left whitespace-nowrap w-full ${
+                activeSection === item.id
+                  ? "bg-surface-background text-text-primary font-semibold border border-black/10"
+                  : "text-text-secondary hover:bg-surface-background"
+              }`}
+            >
+              <span className="text-base">{item.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Scrollable bottom section - Day navigation */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2 text-sm">
-          {SIDEBAR_ITEMS.filter(item => item.id !== "alerts").map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleSidebarClick(item.sectionId)}
-              className={`px-2 py-2 rounded-lg cursor-pointer flex items-center text-left whitespace-nowrap w-full ${
-                activeSection === item.id
-                  ? "bg-surface-background text-text-primary font-semibold border border-black/10"
-                  : "text-text-secondary hover:bg-surface-background"
-              }`}
-            >
-              <span className="text-base">{item.label}</span>
-            </button>
-          ))}
-          
-          {/* Alerts & Permits - between Parks and Days */}
-          {SIDEBAR_ITEMS.filter(item => item.id === "alerts").map((item) => (
-            <button
-              key={item.id}
-              onClick={() => handleSidebarClick(item.sectionId)}
-              className={`px-2 py-2 rounded-lg cursor-pointer flex items-center text-left whitespace-nowrap w-full ${
-                activeSection === item.id
-                  ? "bg-surface-background text-text-primary font-semibold border border-black/10"
-                  : "text-text-secondary hover:bg-surface-background"
-              }`}
-            >
-              <span className="text-base">{item.label}</span>
-            </button>
-          ))}
-          
-          {/* Day navigation */}
           {availableDays.length > 0 && (
             <>
               {availableDays.map((day) => (
@@ -768,17 +902,6 @@ function ItineraryContent() {
 
         {/* Fixed bottom items */}
         <div className="flex-shrink-0 p-3 space-y-2 pt-4 border-t border-surface-divider">
-          {/* Settings */}
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              router.push("/settings");
-            }}
-            className="px-2 py-2 rounded-lg cursor-pointer flex items-center text-left text-text-secondary hover:bg-surface-background w-full whitespace-nowrap"
-          >
-            <span className="text-base">Settings</span>
-          </button>
-          
           {/* Support */}
           <button
             onClick={(e) => {
@@ -789,65 +912,6 @@ function ItineraryContent() {
           >
             <span className="text-base">Support</span>
           </button>
-          
-          {/* Sign up / Login / Logout */}
-          {isLoggedIn ? (
-            <>
-              <button
-                onClick={() => setShowLogoutConfirm(true)}
-                className="px-2 py-2 rounded-lg cursor-pointer flex items-center text-left text-text-secondary hover:bg-surface-background w-full whitespace-nowrap"
-              >
-                <span className="text-base">Logout</span>
-              </button>
-              {showLogoutConfirm && (
-                <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl border border-surface-divider shadow-xl p-4 w-64">
-                  <p className="text-sm md:text-base text-text-primary mb-4">
-                    Are you sure you want to logout?
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setIsLoggedIn(false);
-                        setShowLogoutConfirm(false);
-                        // TODO: Call Supabase auth.signOut() here
-                        console.log("User logged out");
-                      }}
-                      className="flex-1 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition text-sm md:text-base font-medium"
-                    >
-                      Yes, logout
-                    </button>
-                    <button
-                      onClick={() => setShowLogoutConfirm(false)}
-                      className="flex-1 bg-surface-background text-text-primary px-4 py-2 rounded-lg hover:bg-surface-divider transition text-sm md:text-base font-medium"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <button
-                onClick={() => {
-                  setAuthMode("signup");
-                  setIsAuthOpen(true);
-                }}
-                className="px-2 py-2 rounded-lg cursor-pointer flex items-center text-left text-text-secondary hover:bg-surface-background w-full whitespace-nowrap"
-              >
-                <span className="text-base">Sign up</span>
-              </button>
-              <button
-                onClick={() => {
-                  setAuthMode("login");
-                  setIsAuthOpen(true);
-                }}
-                className="px-2 py-2 rounded-lg cursor-pointer flex items-center text-left text-text-secondary hover:bg-surface-background w-full whitespace-nowrap"
-              >
-                <span className="text-base">Login</span>
-              </button>
-            </>
-          )}
         </div>
       </aside>
 
@@ -1140,14 +1204,25 @@ function ItineraryContent() {
           >
             <SortableContext items={parks}>
               <div className="space-y-2">
-                {parks.map((park, index) => (
-                  <SortableParkItem
-                    key={park}
-                    park={park}
-                    index={index}
-                    onRemove={() => handleRemovePark(index)}
-                  />
-                ))}
+                {parks.map((park, index) => {
+                  const days = parkDays[park] || 1;
+                  const currentTotal = Object.values(parkDays).reduce((sum, d) => sum + d, 0);
+                  const canIncrease = currentTotal < numberOfDays;
+                  const canDecrease = days > 1;
+                  
+                  return (
+                    <SortableParkItem
+                      key={park}
+                      park={park}
+                      index={index}
+                      days={days}
+                      onRemove={() => handleRemovePark(index)}
+                      onDaysChange={(newDays) => handleParkDaysChange(park, newDays)}
+                      canDecrease={canDecrease}
+                      canIncrease={canIncrease}
+                    />
+                  );
+                })}
               </div>
             </SortableContext>
           </DndContext>
@@ -1260,6 +1335,162 @@ function ItineraryContent() {
           </div>
         </section>
 
+        {/* Accommodation Section */}
+        <section
+          id="section-accommodation"
+          ref={(el) => {
+            sectionRefs.current["section-accommodation"] = el;
+          }}
+          className="space-y-4 mt-12"
+        >
+          <h2 className="text-2xl md:text-3xl font-semibold text-text-primary">
+            Accommodation
+          </h2>
+          <div className="bg-white rounded-xl border border-surface-divider p-6 space-y-6">
+            <p className="text-sm md:text-base text-text-secondary">
+              This makes it easier to plan where you&apos;ll stay during each part of your journey.
+            </p>
+            
+            {parks.map((park, index) => {
+              // Extract city name from park name (e.g., "Yellowstone National Park" -> "Yellowstone")
+              // Or use nearby city names for better search results
+              const getLocationName = (parkName: string): string => {
+                // Map of park names to nearby cities for better search results
+                const parkCityMap: Record<string, string> = {
+                  "Yellowstone National Park": "West Yellowstone",
+                  "Grand Canyon National Park": "Grand Canyon",
+                  "Zion National Park": "Springdale",
+                  "Yosemite National Park": "Yosemite",
+                  "Rocky Mountain National Park": "Estes Park",
+                  "Grand Teton National Park": "Jackson",
+                  "Glacier National Park": "West Glacier",
+                  "Acadia National Park": "Bar Harbor",
+                  "Bryce Canyon National Park": "Bryce",
+                  "Arches National Park": "Moab",
+                  "Canyonlands National Park": "Moab",
+                  "Capitol Reef National Park": "Torrey",
+                  "Great Smoky Mountains National Park": "Gatlinburg",
+                  "Olympic National Park": "Port Angeles",
+                  "Sequoia National Park": "Three Rivers",
+                  "Kings Canyon National Park": "Three Rivers",
+                  "Crater Lake National Park": "Bend",
+                  "Badlands National Park": "Wall",
+                };
+                
+                // Try to find a mapped city, otherwise extract from park name
+                if (parkCityMap[parkName]) {
+                  return parkCityMap[parkName];
+                }
+                
+                // Extract first word from park name (e.g., "Yellowstone National Park" -> "Yellowstone")
+                const firstWord = parkName.split(" ")[0];
+                return firstWord;
+              };
+
+              const locationName = getLocationName(park);
+              
+              // Calculate nights for this park (simplified - assumes 1 night per park for now)
+              const nights = 1;
+              const startDate = new Date();
+              startDate.setDate(startDate.getDate() + index);
+              const endDate = new Date(startDate);
+              endDate.setDate(endDate.getDate() + nights - 1);
+              
+              const formatDate = (date: Date) => {
+                return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+              };
+
+              return (
+                <div key={park} className="space-y-4 pb-6 border-b border-surface-divider last:border-b-0 last:pb-0">
+                  {/* Park Name */}
+                  <h3 className="text-lg md:text-xl font-semibold text-text-primary">
+                    {park}
+                  </h3>
+                  
+                  {/* Nights and Date Info */}
+                  <div className="flex items-center gap-2 text-sm md:text-base text-text-secondary">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    <span>{nights} night{nights !== 1 ? "s" : ""}</span>
+                    <span className="text-text-secondary">•</span>
+                    <span>{formatDate(startDate)}{nights > 1 ? `-${formatDate(endDate)}` : ""}</span>
+                  </div>
+                  
+                  {/* Add Lodging Button */}
+                  <button
+                    className="w-full px-4 py-3 rounded-lg bg-primary text-white text-sm md:text-base font-medium hover:bg-primary-dark transition flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>Add Lodging</span>
+                  </button>
+                  
+                  {/* Explore nearby areas Button with Dropdown */}
+                  <div className="relative" ref={accommodationDropdownRef}>
+                    <button
+                      onClick={() => {
+                        setOpenAccommodationDropdown(openAccommodationDropdown === park ? null : park);
+                      }}
+                      className="w-full px-4 py-3 rounded-lg border border-surface-divider bg-white text-text-primary text-sm md:text-base font-medium hover:bg-surface-background transition flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span>Explore nearby areas</span>
+                      </div>
+                      <svg 
+                        className={`w-4 h-4 transition-transform ${openAccommodationDropdown === park ? 'rotate-90' : ''}`}
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                    
+                    {/* Dropdown Menu */}
+                    {openAccommodationDropdown === park && (
+                      <div className="absolute top-full left-0 mt-2 w-full bg-white rounded-xl border border-surface-divider shadow-xl z-50 overflow-hidden">
+                        <a
+                          href={`https://www.booking.com/searchresults.html?ss=${encodeURIComponent(locationName)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setOpenAccommodationDropdown(null)}
+                          className="block px-4 py-3 text-sm md:text-base text-text-primary hover:bg-surface-background transition border-b border-surface-divider"
+                        >
+                          Search Hotels in {locationName}
+                        </a>
+                        <a
+                          href={`https://www.airbnb.com/s/${encodeURIComponent(locationName)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setOpenAccommodationDropdown(null)}
+                          className="block px-4 py-3 text-sm md:text-base text-text-primary hover:bg-surface-background transition border-b border-surface-divider"
+                        >
+                          Search Airbnbs in {locationName}
+                        </a>
+                        <a
+                          href={`https://www.recreation.gov/search?q=${encodeURIComponent(locationName)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setOpenAccommodationDropdown(null)}
+                          className="block px-4 py-3 text-sm md:text-base text-text-primary hover:bg-surface-background transition"
+                        >
+                          Search Campgrounds near {locationName}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
         {/* Itinerary Section */}
         <section
           id="section-itinerary"
@@ -1293,9 +1524,7 @@ function ItineraryContent() {
                             <div 
                               className="flex-1 min-w-0 cursor-pointer"
                               onClick={() => {
-                                if (activity.linkUrl) {
-                                  window.open(activity.linkUrl, '_blank', 'noopener,noreferrer');
-                                }
+                                setSelectedActivity(activity);
                               }}
                             >
                               <div className="flex items-center gap-2 mb-1">
@@ -1349,7 +1578,7 @@ function ItineraryContent() {
               })}
           </div>
         </section>
-          </div>
+        </div>
         </div>
 
         {/* Add Activity Drawer - Part of layout, not fixed */}
@@ -1388,55 +1617,53 @@ function ItineraryContent() {
         </div>
       </div>
 
-      {/* Sign up / Logout Button - Bottom Left */}
-      <div className="fixed bottom-6 left-6 z-40" ref={logoutButtonRef}>
-        {isLoggedIn ? (
-          <>
-            <button
-              onClick={() => setShowLogoutConfirm(true)}
-              className="px-2 py-2 rounded-lg cursor-pointer flex items-center text-left text-text-secondary hover:bg-surface-background whitespace-nowrap"
-            >
-              <span className="text-base">Logout</span>
-            </button>
-            {showLogoutConfirm && (
-              <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl border border-surface-divider shadow-xl p-4 w-64">
-                <p className="text-sm md:text-base text-text-primary mb-4">
-                  Are you sure you want to logout?
-                </p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setIsLoggedIn(false);
-                      setShowLogoutConfirm(false);
-                      // TODO: Call Supabase auth.signOut() here
-                      console.log("User logged out");
-                    }}
-                    className="flex-1 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary-dark transition text-sm md:text-base font-medium"
-                  >
-                    Yes, logout
-                  </button>
-                  <button
-                    onClick={() => setShowLogoutConfirm(false)}
-                    className="flex-1 bg-surface-background text-text-primary px-4 py-2 rounded-lg hover:bg-surface-divider transition text-sm md:text-base font-medium"
-                  >
-                    Cancel
-                  </button>
-                </div>
+
+      {/* Activity Detail Modal */}
+      {selectedActivity && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div
+            ref={activityModalRef}
+            className="bg-white rounded-xl border border-surface-divider shadow-xl max-w-md w-full p-6 space-y-4"
+          >
+            <div className="flex items-start justify-between">
+              <h3 className="text-xl md:text-2xl font-semibold text-text-primary">
+                {selectedActivity.name}
+              </h3>
+              <button
+                onClick={() => setSelectedActivity(null)}
+                className="text-text-secondary hover:text-text-primary text-2xl font-semibold flex-shrink-0"
+                aria-label="Close modal"
+              >
+                ×
+              </button>
+            </div>
+            
+            {selectedActivity.description && (
+              <p className="text-sm md:text-base text-text-secondary">
+                {selectedActivity.description}
+              </p>
+            )}
+            
+            {selectedActivity.linkUrl && (
+              <div className="pt-4 border-t border-surface-divider">
+                <a
+                  href={selectedActivity.linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm md:text-base text-primary hover:text-primary-dark font-medium transition"
+                >
+                  <span>
+                    View on {selectedActivity.linkUrl.includes('nps.gov') ? 'NPS' : selectedActivity.linkUrl.includes('alltrails.com') ? 'AllTrails' : 'Website'}
+                  </span>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
               </div>
             )}
-          </>
-        ) : (
-          <button
-            onClick={() => {
-              setAuthMode("signup");
-              setIsAuthOpen(true);
-            }}
-            className="px-2 py-2 rounded-lg cursor-pointer flex items-center text-left text-text-secondary hover:bg-surface-background whitespace-nowrap"
-          >
-            <span className="text-base">Sign up</span>
-          </button>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
 
       {/* Auth Modal */}
       <AuthModal
